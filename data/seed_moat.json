@@ -1,0 +1,350 @@
+[
+    {
+        "command": "docker build -t myapp:latest .",
+        "context_tags": ["docker", "build"],
+        "success_score": 0.95,
+        "provenance": "official docker docs"
+    },
+    {
+        "command": "docker run -it --rm myapp:latest /bin/bash",
+        "context_tags": ["docker", "run"],
+        "success_score": 0.95,
+        "provenance": "official docker docs"
+    },
+    {
+        "command": "docker ps -a",
+        "context_tags": ["docker", "inspect"],
+        "success_score": 0.98,
+        "provenance": "official docker docs"
+    },
+    {
+        "command": "sudo usermod -aG docker $USER && newgrp docker",
+        "context_tags": ["docker", "permissions"],
+        "success_score": 0.92,
+        "provenance": "stackoverflow - permission denied docker"
+    },
+    {
+        "command": "docker logs -f <container_id>",
+        "context_tags": ["docker", "debug"],
+        "success_score": 0.96,
+        "provenance": "official docker docs"
+    },
+    {
+        "command": "docker network create mynetwork && docker run --network mynetwork --name service1 myapp:latest",
+        "context_tags": ["docker", "networking"],
+        "success_score": 0.88,
+        "provenance": "official docker docs"
+    },
+    {
+        "command": "docker-compose up -d && docker-compose logs -f",
+        "context_tags": ["docker", "compose"],
+        "success_score": 0.91,
+        "provenance": "official docker-compose docs"
+    },
+    {
+        "command": "docker volume create myvolume && docker run -v myvolume:/data myapp:latest",
+        "context_tags": ["docker", "volume"],
+        "success_score": 0.89,
+        "provenance": "official docker docs"
+    },
+    {
+        "command": "git config --global user.email 'you@example.com' && git config --global user.name 'Your Name'",
+        "context_tags": ["git", "config"],
+        "success_score": 0.98,
+        "provenance": "git official docs"
+    },
+    {
+        "command": "git clone https://github.com/user/repo.git",
+        "context_tags": ["git", "clone"],
+        "success_score": 0.97,
+        "provenance": "git official docs"
+    },
+    {
+        "command": "eval \"$(ssh-agent -s)\" && ssh-add ~/.ssh/id_rsa",
+        "context_tags": ["git", "ssh", "auth"],
+        "success_score": 0.93,
+        "provenance": "github docs + stackoverflow"
+    },
+    {
+        "command": "git status",
+        "context_tags": ["git", "inspect"],
+        "success_score": 0.99,
+        "provenance": "git official docs"
+    },
+    {
+        "command": "git add . && git commit -m 'message' && git push origin main",
+        "context_tags": ["git", "push"],
+        "success_score": 0.95,
+        "provenance": "git official docs"
+    },
+    {
+        "command": "git pull origin main",
+        "context_tags": ["git", "pull"],
+        "success_score": 0.94,
+        "provenance": "git official docs"
+    },
+    {
+        "command": "git branch -a && git checkout <branch_name>",
+        "context_tags": ["git", "branch"],
+        "success_score": 0.96,
+        "provenance": "git official docs"
+    },
+    {
+        "command": "git rebase -i HEAD~5",
+        "context_tags": ["git", "rebase"],
+        "success_score": 0.78,
+        "provenance": "git official docs + stackoverflow"
+    },
+    {
+        "command": "git reset --soft HEAD~1 && git reset HEAD <file>",
+        "context_tags": ["git", "undo"],
+        "success_score": 0.89,
+        "provenance": "git official docs"
+    },
+    {
+        "command": "npm install",
+        "context_tags": ["node", "npm", "install"],
+        "success_score": 0.97,
+        "provenance": "npm official docs"
+    },
+    {
+        "command": "npm install --save-dev <package>",
+        "context_tags": ["node", "npm"],
+        "success_score": 0.96,
+        "provenance": "npm official docs"
+    },
+    {
+        "command": "npm update && npm outdated",
+        "context_tags": ["node", "npm"],
+        "success_score": 0.92,
+        "provenance": "npm official docs"
+    },
+    {
+        "command": "npm run <script_name>",
+        "context_tags": ["node", "npm"],
+        "success_score": 0.98,
+        "provenance": "npm official docs"
+    },
+    {
+        "command": "npm ci",
+        "context_tags": ["node", "npm", "ci"],
+        "success_score": 0.94,
+        "provenance": "npm official docs"
+    },
+    {
+        "command": "npm cache clean --force",
+        "context_tags": ["node", "npm"],
+        "success_score": 0.85,
+        "provenance": "stackoverflow - npm cache corrupted"
+    },
+    {
+        "command": "npm init -y",
+        "context_tags": ["node", "npm"],
+        "success_score": 0.99,
+        "provenance": "npm official docs"
+    },
+    {
+        "command": "python3 -m venv venv && source venv/bin/activate",
+        "context_tags": ["python", "venv"],
+        "success_score": 0.96,
+        "provenance": "python official docs"
+    },
+    {
+        "command": "pip install -r requirements.txt",
+        "context_tags": ["python", "pip"],
+        "success_score": 0.95,
+        "provenance": "python official docs"
+    },
+    {
+        "command": "pip freeze > requirements.txt",
+        "context_tags": ["python", "pip"],
+        "success_score": 0.98,
+        "provenance": "python official docs"
+    },
+    {
+        "command": "python -m pytest -v",
+        "context_tags": ["python", "test"],
+        "success_score": 0.93,
+        "provenance": "pytest official docs"
+    },
+    {
+        "command": "python -m black . && python -m flake8",
+        "context_tags": ["python", "format"],
+        "success_score": 0.90,
+        "provenance": "black + flake8 docs"
+    },
+    {
+        "command": "python -m http.server 8000",
+        "context_tags": ["python", "server"],
+        "success_score": 0.94,
+        "provenance": "python official docs"
+    },
+    {
+        "command": "kubectl config get-contexts",
+        "context_tags": ["kubernetes", "config"],
+        "success_score": 0.97,
+        "provenance": "k8s official docs"
+    },
+    {
+        "command": "kubectl apply -f deployment.yaml",
+        "context_tags": ["kubernetes", "deploy"],
+        "success_score": 0.94,
+        "provenance": "k8s official docs"
+    },
+    {
+        "command": "kubectl get pods -n default && kubectl describe pod <pod_name>",
+        "context_tags": ["kubernetes", "inspect"],
+        "success_score": 0.98,
+        "provenance": "k8s official docs"
+    },
+    {
+        "command": "kubectl logs -f <pod_name>",
+        "context_tags": ["kubernetes", "debug"],
+        "success_score": 0.96,
+        "provenance": "k8s official docs"
+    },
+    {
+        "command": "kubectl delete pod <pod_name> && kubectl delete deployment <deployment_name>",
+        "context_tags": ["kubernetes", "delete"],
+        "success_score": 0.95,
+        "provenance": "k8s official docs"
+    },
+    {
+        "command": "chmod +x script.sh",
+        "context_tags": ["linux", "shell", "permissions"],
+        "success_score": 0.99,
+        "provenance": "linux man pages"
+    },
+    {
+        "command": "sudo chown -R $USER:$USER /path/to/dir",
+        "context_tags": ["linux", "permissions"],
+        "success_score": 0.96,
+        "provenance": "linux man pages"
+    },
+    {
+        "command": "find . -name '*.log' -type f -delete",
+        "context_tags": ["linux", "shell"],
+        "success_score": 0.92,
+        "provenance": "linux man pages"
+    },
+    {
+        "command": "grep -r 'pattern' . --include='*.js' --exclude-dir=node_modules",
+        "context_tags": ["linux", "shell", "search"],
+        "success_score": 0.95,
+        "provenance": "linux man pages"
+    },
+    {
+        "command": "sed -i 's/old/new/g' file.txt",
+        "context_tags": ["linux", "shell", "text"],
+        "success_score": 0.90,
+        "provenance": "linux man pages"
+    },
+    {
+        "command": "ps aux | grep <process> | grep -v grep",
+        "context_tags": ["linux", "shell", "process"],
+        "success_score": 0.97,
+        "provenance": "linux man pages"
+    },
+    {
+        "command": "kill -9 <pid>",
+        "context_tags": ["linux", "shell", "process"],
+        "success_score": 0.96,
+        "provenance": "linux man pages"
+    },
+    {
+        "command": "du -sh /path/to/dir",
+        "context_tags": ["linux", "shell", "disk"],
+        "success_score": 0.98,
+        "provenance": "linux man pages"
+    },
+    {
+        "command": "psql -U postgres -d mydb -c 'SELECT version();'",
+        "context_tags": ["postgres", "db", "connect"],
+        "success_score": 0.94,
+        "provenance": "postgres official docs"
+    },
+    {
+        "command": "createdb mydb && psql -U postgres -d mydb -f schema.sql",
+        "context_tags": ["postgres", "db", "setup"],
+        "success_score": 0.93,
+        "provenance": "postgres official docs"
+    },
+    {
+        "command": "pg_dump -U postgres mydb > backup.sql",
+        "context_tags": ["postgres", "db", "backup"],
+        "success_score": 0.96,
+        "provenance": "postgres official docs"
+    },
+    {
+        "command": "sudo chown -R $(whoami) ~/.npm",
+        "context_tags": ["error", "permissions", "npm"],
+        "success_score": 0.92,
+        "provenance": "stackoverflow - EACCES npm"
+    },
+    {
+        "command": "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash && source ~/.bashrc && nvm install 18",
+        "context_tags": ["error", "permissions", "node"],
+        "success_score": 0.89,
+        "provenance": "nvm github"
+    },
+    {
+        "command": "lsof -i :3000 || ss -lptn | grep 3000",
+        "context_tags": ["error", "networking"],
+        "success_score": 0.95,
+        "provenance": "stackoverflow - address already in use"
+    },
+    {
+        "command": "ping 8.8.8.8 && cat /etc/resolv.conf",
+        "context_tags": ["error", "networking", "dns"],
+        "success_score": 0.88,
+        "provenance": "stackoverflow - ENOTFOUND DNS"
+    },
+    {
+        "command": "ls -la <file_path>",
+        "context_tags": ["error", "filesystem"],
+        "success_score": 0.99,
+        "provenance": "linux man pages"
+    },
+    {
+        "command": "timeout 10 <command> || echo 'Command timed out'",
+        "context_tags": ["error", "timeout"],
+        "success_score": 0.90,
+        "provenance": "linux man pages"
+    },
+    {
+        "command": "curl -k https://example.com",
+        "context_tags": ["error", "ssl", "tls"],
+        "success_score": 0.80,
+        "provenance": "curl man pages"
+    },
+    {
+        "command": "free -h && df -h",
+        "context_tags": ["error", "system", "resources"],
+        "success_score": 0.94,
+        "provenance": "linux man pages"
+    },
+    {
+        "command": "cargo build --release",
+        "context_tags": ["rust", "build"],
+        "success_score": 0.98,
+        "provenance": "official rust docs"
+    },
+    {
+        "command": "cargo test -- --test-threads=1",
+        "context_tags": ["rust", "test"],
+        "success_score": 0.96,
+        "provenance": "official rust docs"
+    },
+    {
+        "command": "cargo run -- <args>",
+        "context_tags": ["rust", "run"],
+        "success_score": 0.98,
+        "provenance": "official rust docs"
+    },
+    {
+        "command": "cargo fmt && cargo clippy -- -D warnings",
+        "context_tags": ["rust", "quality"],
+        "success_score": 0.95,
+        "provenance": "official rust docs"
+    }
+]

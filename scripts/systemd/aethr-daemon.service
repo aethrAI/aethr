@@ -1,0 +1,14 @@
+heck for scripts/systemd/aethr-daemon.service, if no availabele, create it, and add this in it;
+[Unit]
+Description=Aethr user daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/env aethr daemon-start
+Restart=on-failure
+RestartSec=5
+Environment=RUST_LOG=info
+
+[Install]
+WantedBy=default.target
