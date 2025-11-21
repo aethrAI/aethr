@@ -1,25 +1,23 @@
-<div class="hero">
-	<img src="assets/favicon.png" alt="Aethr logo" class="hero-logo" />
-	<h1>Aethr</h1>
-	<p class="hero-tagline">Local-first terminal intelligence. Remember every command, fix errors deterministically, and keep sensitive history offline.</p>
-	<pre class="hero-command"><code>curl -fsSL https://install.aethr-ai.dev | sh</code></pre>
-	<div class="hero-actions">
-	<a class="md-button md-button--primary" href="getting-started/installation.md">Get Started</a>
-	<a class="md-button" href="https://github.com/aethrAI/aethr" target="_blank" rel="noopener">GitHub Repo</a>
-	</div>
-	<div class="hero-social">
-		<a href="https://x.com/aethr_ai" target="_blank" rel="noopener">@aethr_ai</a>
-		<span>•</span>
-		<a href="https://discord.gg/XKtbXxG42d" target="_blank" rel="noopener">Discord Community</a>
-	</div>
-</div>
+# Aethr
 
+Local-first terminal intelligence for engineers who want instant recall, deterministic fixes, and total privacy.
+
+```bash
+curl -fsSL https://install.aethr-ai.dev | sh
+```
+
+---
 
 ## Why teams choose Aethr
 
 Aethr keeps engineers fast and confident at the command line while respecting privacy:
 
+- **Semantic recall** — Find past invocations by intent, not exact syntax.
+- **Deterministic fixes** — Community-vetted remediation before any LLM guesswork.
+- **Situational awareness** — Understand project context to surface the right command.
+- **Local-first storage** — SQLite-backed history with optional opt-in sharing.
 
+---
 
 ## Core principles we refuse to compromise
 
@@ -28,6 +26,7 @@ Aethr keeps engineers fast and confident at the command line while respecting pr
 3. **Transparent ranking** — recency, frequency, and context are always explained.
 4. **User agency over data** — no silent collection, ever.
 
+---
 
 ## Source install (power users)
 
@@ -40,6 +39,7 @@ cargo build --release
 ./target/release/aethr recall "docker build"
 ```
 
+---
 
 ## Capabilities that ship today
 
@@ -52,14 +52,19 @@ cargo build --release
 | **Context** | Project tech stack detection           | Stable |
 | **LLM Assist** | Advanced reasoning layer            | Planned |
 
+---
 
 ## Coming next on the roadmap
 
 The LLM layer will integrate after deterministic coverage is maximized, unlocking:
 
+- **Structured error interpretation** — Understand failures with full CLI context.
+- **Multi-step remediation** — Guide complex recoveries without leaving the terminal.
+- **Natural language intent mapping** — Speak your goal; let Aethr craft the command.
 
 We preserve local-first guarantees: remote augmentation is explicit, optional, and transparent.
 
+---
 
 ## Navigate the docs
 
@@ -68,8 +73,11 @@ We preserve local-first guarantees: remote augmentation is explicit, optional, a
 | [Installation](getting-started/installation.md) | [Architecture](reference/architecture.md) | [Commands](usage/commands.md) | [Troubleshooting](operations/troubleshooting.md) |
 | [Quick Start](getting-started/quick-start.md) | [Database](reference/database.md) | [Features](usage/features.md) | [FAQ](operations/faq.md) |
 
+---
 
 ## Design goals we live by
 
-
-Continue with: [Installation →](getting-started/installation.md)
+- ⚡ **Millisecond local queries** — snappy recall without network hops.
+- 📐 **Deterministic ranking** — formulas are documented, auditable, tweakable.
+- 🔄 **CI-friendly integration** — clear exit codes and structured outputs.
+- 🧠 **Low cognitive load** — the TUI stays intuitive so you stay in flow.

@@ -6,6 +6,7 @@ repo_name: aethrAI/aethr
 
 theme:
   name: material
+  logo: assets/favicon.png
   favicon: assets/favicon.png
   features:
     - navigation.indexes
@@ -16,8 +17,17 @@ theme:
     - content.code.copy
   palette:
     - scheme: default
-      primary: grey
+      primary: slate
       accent: blue
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: slate
+      accent: blue
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
   font:
     text: Roboto
     code: Roboto Mono
@@ -28,9 +38,22 @@ plugins:
 
 extra:
   generator: false
+  social:
+    - icon: fontawesome/brands/x-twitter
+      link: https://x.com/aethr_ai
+      name: Aethr on X
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/XKtbXxG42d
+      name: Aethr Discord
+    - icon: fontawesome/brands/github
+      link: https://github.com/aethrAI
+      name: Aethr on GitHub
 
 extra_css:
   - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/header-links.js
 
 markdown_extensions:
   - admonition
