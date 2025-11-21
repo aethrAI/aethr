@@ -1,0 +1,194 @@
+/* Hero section - black background */
+.md-hero {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  color: #ffffff;
+  padding: 60px 20px;
+}
+
+.md-hero__content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+}
+
+.md-hero h1 {
+  font-size: 3.5rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  letter-spacing: -1px;
+}
+
+.md-hero p {
+  font-size: 1.3rem;
+  opacity: 0.9;
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+/* Section separators and visual hierarchy */
+.md-content h1,
+.md-content h2,
+.md-content h3 {
+  margin-top: 2em;
+  margin-bottom: 0.8em;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.md-content h2 {
+  padding-bottom: 0.5em;
+  border-bottom: 2px solid #e0e0e0;
+  font-size: 1.8rem;
+}
+
+.md-content h3 {
+  color: #1a1a1a;
+  font-size: 1.4rem;
+  margin-top: 1.5em;
+}
+
+/* Improve spacing and readability */
+.md-content p {
+  line-height: 1.7;
+  margin-bottom: 1.2em;
+}
+
+.md-content ul,
+.md-content ol {
+  margin-bottom: 1.5em;
+  padding-left: 2em;
+}
+
+.md-content li {
+  margin-bottom: 0.5em;
+  line-height: 1.6;
+}
+
+/* Code block improvements */
+.md-content pre {
+  border-radius: 6px;
+  border-left: 4px solid #1a1a1a;
+  margin: 1.5em 0;
+}
+
+.md-content code {
+  background-color: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+/* Navigation improvements */
+.md-header {
+  background: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.md-nav__link {
+  font-weight: 500;
+}
+
+/* Content area padding and alignment */
+.md-container {
+  max-width: 1200px;
+}
+
+.md-content {
+  padding: 3rem 2rem;
+}
+
+/* Admonitions with better styling */
+.admonition {
+  margin: 1.5em 0;
+  padding: 1em;
+  border-left: 4px solid #1a1a1a;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.admonition-title {
+  font-weight: 700;
+  margin-bottom: 0.5em;
+}
+
+/* Tables with better styling */
+.md-content table {
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  width: 100%;
+}
+
+.md-content table thead {
+  background-color: #f5f5f5;
+}
+
+.md-content table td,
+.md-content table th {
+  padding: 0.8em;
+  border: 1px solid #e0e0e0;
+}
+
+.md-content table tbody tr:hover {
+  background-color: #fafafa;
+}
+
+/* Footer styling - cleaner appearance */
+.md-footer {
+  background-color: #1a1a1a;
+  color: #ffffff;
+  border-top: 1px solid #e0e0e0;
+}
+
+.md-footer-copyright {
+  padding: 1.5rem 2rem;
+  text-align: center;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+/* Major section card-like styling */
+.md-content > p + h2,
+.md-content > h2 {
+  margin-top: 3em;
+  padding-top: 2em;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* Button and link styling */
+.md-button {
+  border-radius: 6px;
+  font-weight: 600;
+  padding: 0.7em 1.5em;
+}
+
+.md-button--primary {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+.md-button--primary:hover {
+  background-color: #2d2d2d;
+}
+
+/* Overall page background */
+body {
+  background-color: #ffffff;
+}
+
+/* Improved typography */
+.md-typeset {
+  color: #333333;
+}
+
+.md-typeset a {
+  color: #0066cc;
+  text-decoration: none;
+  border-bottom: 1px dotted #0066cc;
+}
+
+.md-typeset a:hover {
+  color: #0052a3;
+  border-bottom-color: #0052a3;
+}

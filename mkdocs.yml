@@ -6,6 +6,7 @@ repo_name: aethrAI/aethr
 
 theme:
   name: material
+  favicon: assets/favicon.png
   features:
     - navigation.indexes
     - navigation.instant
@@ -15,15 +16,21 @@ theme:
     - content.code.copy
   palette:
     - scheme: default
-      primary: blue
+      primary: grey
       accent: blue
   font:
     text: Roboto
     code: Roboto Mono
-  favicon: assets/favicon.png
+  custom_dir: overrides
 
 plugins:
   - search
+
+extra:
+  generator: false
+
+extra_css:
+  - stylesheets/extra.css
 
 markdown_extensions:
   - admonition
