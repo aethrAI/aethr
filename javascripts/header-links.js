@@ -19,31 +19,26 @@
 
   const init = () => {
     const headerInner = document.querySelector('.md-header__inner');
-    if (!headerInner) return;
+    if (!headerInner || headerInner.querySelector('.aethr-header-links')) return;
 
-    const title = headerInner.querySelector('.md-header__title');
-    const logoButton = headerInner.querySelector('.md-logo');
-    if (title && logoButton && !title.contains(logoButton)) {
-      logoButton.classList.add('aethr-logo-inline');
-      title.appendChild(logoButton);
-    }
+    const container = document.createElement('div');
+    container.className = 'aethr-header-links';
 
-    if (!headerInner.querySelector('.aethr-header-links')) {
-      const source = headerInner.querySelector('.md-header__source');
-      const container = document.createElement('div');
-      container.className = 'aethr-header-links';
+    ICONS.forEach(({ href, label, svg }) => {
+      const anchor = document.createElement('a');
+      anchor.href = href;
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+      anchor.setAttribute('aria-label', label);
+      anchor.innerHTML = svg;
+      container.appendChild(anchor);
+    });
 
-      ICONS.forEach(({ href, label, svg }) => {
-        const anchor = document.createElement('a');
-        anchor.href = href;
-        anchor.target = '_blank';
-        anchor.rel = 'noopener';
-        anchor.setAttribute('aria-label', label);
-        anchor.innerHTML = svg;
-        container.appendChild(anchor);
-      });
-
-      headerInner.insertBefore(container, source || null);
+    const search = headerInner.querySelector('.md-search');
+    if (search) {
+      search.insertAdjacentElement('afterend', container);
+    } else {
+      headerInner.appendChild(container);
     }
   };
 
