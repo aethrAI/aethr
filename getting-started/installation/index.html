@@ -395,10 +395,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#requirements" class="md-nav__link">
+  <a href="#supported-platforms" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Requirements
+        Supported platforms
       
     </span>
   </a>
@@ -406,10 +406,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#procedure" class="md-nav__link">
+  <a href="#quick-install-recommended" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Procedure
+        Quick install (recommended)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optional-packages-debianubuntu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional packages (Debian/Ubuntu)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#source-build-contributors-advanced" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source build (contributors / advanced)
       
     </span>
   </a>
@@ -431,7 +453,7 @@
   <a href="#build-time" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Build Time
+        Build time
       
     </span>
   </a>
@@ -439,10 +461,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#environment-variables-optional" class="md-nav__link">
+  <a href="#about-upcoming-llm-features" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Environment Variables (Optional)
+        About upcoming LLM features
       
     </span>
   </a>
@@ -1004,10 +1026,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#requirements" class="md-nav__link">
+  <a href="#supported-platforms" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Requirements
+        Supported platforms
       
     </span>
   </a>
@@ -1015,10 +1037,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#procedure" class="md-nav__link">
+  <a href="#quick-install-recommended" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Procedure
+        Quick install (recommended)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optional-packages-debianubuntu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional packages (Debian/Ubuntu)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#source-build-contributors-advanced" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source build (contributors / advanced)
       
     </span>
   </a>
@@ -1040,7 +1084,7 @@
   <a href="#build-time" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Build Time
+        Build time
       
     </span>
   </a>
@@ -1048,10 +1092,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#environment-variables-optional" class="md-nav__link">
+  <a href="#about-upcoming-llm-features" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Environment Variables (Optional)
+        About upcoming LLM features
       
     </span>
   </a>
@@ -1081,44 +1125,48 @@
 
 
 <h1 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h1>
-<h2 id="requirements">Requirements<a class="headerlink" href="#requirements" title="Permanent link">&para;</a></h2>
+<p>This guide shows the quickest way to get Aethr running. Most users should use the one-line installer. Source build instructions are provided for contributors.</p>
+<h2 id="supported-platforms">Supported platforms<a class="headerlink" href="#supported-platforms" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Rust 1.70+ (use rustup)</li>
-<li>Git</li>
-<li>Linux, macOS, or WSL2</li>
+<li>Linux (x86_64 / aarch64)</li>
+<li>macOS 12+</li>
+<li>Windows (via WSL2 if you want Linux semantics, but not required for macOS/Linux users)</li>
 </ul>
-<p>Optional packages (performance / clipboard integration):</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Debian / Ubuntu</span>
-sudo<span class="w"> </span>apt<span class="w"> </span>update<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>libssl-dev<span class="w"> </span>libsqlite3-dev<span class="w"> </span>sqlite3<span class="w"> </span>xclip
+<h2 id="quick-install-recommended">Quick install (recommended)<a class="headerlink" href="#quick-install-recommended" title="Permanent link">&para;</a></h2>
+<p>Run the installer script (reviews welcome — it’s a small audited shell wrapper):</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://install.aethr-ai.dev<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh
 </code></pre></div>
-<h2 id="procedure">Procedure<a class="headerlink" href="#procedure" title="Permanent link">&para;</a></h2>
-<p>Clone and build:</p>
+<p>After it completes, restart your shell or source your profile so the <code>aethr</code> binary is on <code>PATH</code>.</p>
+<p>Initialize local state and import your history:</p>
+<div class="highlight"><pre><span></span><code>aethr<span class="w"> </span>init
+aethr<span class="w"> </span>import<span class="w">        </span><span class="c1"># optional: ingest existing shell history</span>
+aethr<span class="w"> </span>seed-moat<span class="w">     </span><span class="c1"># optional: load shared deterministic fixes</span>
+</code></pre></div>
+<p>Check status:</p>
+<div class="highlight"><pre><span></span><code>aethr<span class="w"> </span>status
+</code></pre></div>
+<h2 id="optional-packages-debianubuntu">Optional packages (Debian/Ubuntu)<a class="headerlink" href="#optional-packages-debianubuntu" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>apt<span class="w"> </span>update<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>libssl-dev<span class="w"> </span>libsqlite3-dev<span class="w"> </span>sqlite3<span class="w"> </span>xclip
+</code></pre></div>
+<p>These enable faster builds and clipboard integration; Aethr still works without them.</p>
+<h2 id="source-build-contributors-advanced">Source build (contributors / advanced)<a class="headerlink" href="#source-build-contributors-advanced" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/aethrAI/aethr.git
 <span class="nb">cd</span><span class="w"> </span>aethr
 cargo<span class="w"> </span>build<span class="w"> </span>--release
+./target/release/aethr<span class="w"> </span>init
 </code></pre></div>
-<p>Initialize local state:</p>
-<div class="highlight"><pre><span></span><code>./target/release/aethr<span class="w"> </span>init
-./target/release/aethr<span class="w"> </span>import<span class="w">   </span><span class="c1"># ingest shell history</span>
-./target/release/aethr<span class="w"> </span>seed-moat<span class="w">  </span><span class="c1"># load shared fixes</span>
-</code></pre></div>
-<p>Verify:</p>
-<div class="highlight"><pre><span></span><code>./target/release/aethr<span class="w"> </span>status
-</code></pre></div>
-<p>Add binary to PATH (optional):</p>
+<p>Add manually to PATH (optional):</p>
 <div class="highlight"><pre><span></span><code>ln<span class="w"> </span>-s<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">/target/release/aethr&quot;</span><span class="w"> </span>~/.local/bin/aethr
 </code></pre></div>
 <h2 id="uninstall">Uninstall<a class="headerlink" href="#uninstall" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>rm<span class="w"> </span>-f<span class="w"> </span>~/.local/bin/aethr
 rm<span class="w"> </span>-rf<span class="w"> </span>~/.aethr
 </code></pre></div>
-<h2 id="build-time">Build Time<a class="headerlink" href="#build-time" title="Permanent link">&para;</a></h2>
-<p>First release build: ~1–2 minutes depending on CPU and network. Subsequent builds are incremental.</p>
-<h2 id="environment-variables-optional">Environment Variables (Optional)<a class="headerlink" href="#environment-variables-optional" title="Permanent link">&para;</a></h2>
-<p>Set an Anthropic API key for emerging predictive / remediation features:</p>
-<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">ANTHROPIC_API_KEY</span><span class="o">=</span>sk-...<span class="w"> </span><span class="c1"># optional</span>
-</code></pre></div>
-<p>Absent a key, deterministic and community layers continue to function normally.</p>
+<h2 id="build-time">Build time<a class="headerlink" href="#build-time" title="Permanent link">&para;</a></h2>
+<p>First release build: ~1–2 minutes (network + compilation). Subsequent builds are incremental.</p>
+<h2 id="about-upcoming-llm-features">About upcoming LLM features<a class="headerlink" href="#about-upcoming-llm-features" title="Permanent link">&para;</a></h2>
+<p>Predictive and remediation capabilities (LLM-assisted) will arrive soon. They will be strictly opt-in and layered atop the existing deterministic and community fix pipeline. No action or API keys are required from you today.</p>
+<p>Stay tuned in the roadmap for availability updates.</p>
 
 
 
