@@ -1,43 +1,55 @@
 # Installation
 
-## Requirements
+This guide shows the quickest way to get Aethr running. Most users should use the one-line installer. Source build instructions are provided for contributors.
 
-- Rust 1.70+ (use rustup)
-- Git
-- Linux, macOS, or WSL2
+## Supported platforms
 
-Optional packages (performance / clipboard integration):
+- Linux (x86_64 / aarch64)
+- macOS 12+
+- Windows (via WSL2 if you want Linux semantics, but not required for macOS/Linux users)
+
+## Quick install (recommended)
+
+Run the installer script (reviews welcome — it’s a small audited shell wrapper):
 
 ```bash
-# Debian / Ubuntu
+curl -fsSL https://install.aethr-ai.dev | sh
+```
+
+After it completes, restart your shell or source your profile so the `aethr` binary is on `PATH`.
+
+Initialize local state and import your history:
+
+```bash
+aethr init
+aethr import        # optional: ingest existing shell history
+aethr seed-moat     # optional: load shared deterministic fixes
+```
+
+Check status:
+
+```bash
+aethr status
+```
+
+## Optional packages (Debian/Ubuntu)
+
+```bash
 sudo apt update && sudo apt install -y libssl-dev libsqlite3-dev sqlite3 xclip
 ```
 
-## Procedure
+These enable faster builds and clipboard integration; Aethr still works without them.
 
-Clone and build:
+## Source build (contributors / advanced)
 
 ```bash
 git clone https://github.com/aethrAI/aethr.git
 cd aethr
 cargo build --release
-```
-
-Initialize local state:
-
-```bash
 ./target/release/aethr init
-./target/release/aethr import   # ingest shell history
-./target/release/aethr seed-moat  # load shared fixes
 ```
 
-Verify:
-
-```bash
-./target/release/aethr status
-```
-
-Add binary to PATH (optional):
+Add manually to PATH (optional):
 
 ```bash
 ln -s "$PWD/target/release/aethr" ~/.local/bin/aethr
@@ -50,16 +62,12 @@ rm -f ~/.local/bin/aethr
 rm -rf ~/.aethr
 ```
 
-## Build Time
+## Build time
 
-First release build: ~1–2 minutes depending on CPU and network. Subsequent builds are incremental.
+First release build: ~1–2 minutes (network + compilation). Subsequent builds are incremental.
 
-## Environment Variables (Optional)
+## About upcoming LLM features
 
-Set an Anthropic API key for emerging predictive / remediation features:
+Predictive and remediation capabilities (LLM-assisted) will arrive soon. They will be strictly opt-in and layered atop the existing deterministic and community fix pipeline. No action or API keys are required from you today.
 
-```bash
-export ANTHROPIC_API_KEY=sk-... # optional
-```
-
-Absent a key, deterministic and community layers continue to function normally.
+Stay tuned in the roadmap for availability updates.
