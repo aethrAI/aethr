@@ -1,47 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://docs.aethr-ai.dev/</loc>
+         <loc>https://aethrAI.github.io/aethr/</loc>
          <lastmod>2025-11-22</lastmod>
     </url>
     <url>
-         <loc>https://docs.aethr-ai.dev/community/contributing/</loc>
+         <loc>https://aethrAI.github.io/aethr/community/contributing/</loc>
          <lastmod>2025-11-22</lastmod>
     </url>
     <url>
-         <loc>https://docs.aethr-ai.dev/community/roadmap/</loc>
+         <loc>https://aethrAI.github.io/aethr/community/roadmap/</loc>
          <lastmod>2025-11-22</lastmod>
     </url>
     <url>
-         <loc>https://docs.aethr-ai.dev/getting-started/installation/</loc>
+         <loc>https://aethrAI.github.io/aethr/getting-started/installation/</loc>
          <lastmod>2025-11-22</lastmod>
     </url>
     <url>
-         <loc>https://docs.aethr-ai.dev/getting-started/quick-start/</loc>
+         <loc>https://aethrAI.github.io/aethr/getting-started/quick-start/</loc>
          <lastmod>2025-11-22</lastmod>
     </url>
     <url>
-         <loc>https://docs.aethr-ai.dev/operations/faq/</loc>
+         <loc>https://aethrAI.github.io/aethr/operations/faq/</loc>
          <lastmod>2025-11-22</lastmod>
     </url>
     <url>
-         <loc>https://docs.aethr-ai.dev/operations/troubleshooting/</loc>
+         <loc>https://aethrAI.github.io/aethr/operations/troubleshooting/</loc>
          <lastmod>2025-11-22</lastmod>
     </url>
     <url>
-         <loc>https://docs.aethr-ai.dev/reference/architecture/</loc>
+         <loc>https://aethrAI.github.io/aethr/reference/architecture/</loc>
          <lastmod>2025-11-22</lastmod>
     </url>
     <url>
-         <loc>https://docs.aethr-ai.dev/reference/database/</loc>
+         <loc>https://aethrAI.github.io/aethr/reference/database/</loc>
          <lastmod>2025-11-22</lastmod>
     </url>
     <url>
-         <loc>https://docs.aethr-ai.dev/usage/commands/</loc>
+         <loc>https://aethrAI.github.io/aethr/usage/commands/</loc>
          <lastmod>2025-11-22</lastmod>
     </url>
     <url>
-         <loc>https://docs.aethr-ai.dev/usage/features/</loc>
+         <loc>https://aethrAI.github.io/aethr/usage/features/</loc>
          <lastmod>2025-11-22</lastmod>
     </url>
 </urlset>
