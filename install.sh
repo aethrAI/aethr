@@ -27,6 +27,10 @@ case "$ARCH" in
         ARCH="x86_64"
         ;;
     aarch64|arm64)
+        if [ "$OS" = "linux" ]; then
+            echo -e "${RED}Linux ARM64 is not supported in this beta. Please use x86_64.${NC}"
+            exit 1
+        fi
         ARCH="aarch64"
         ;;
     *)

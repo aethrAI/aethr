@@ -15,7 +15,13 @@ ARCH=$(uname -m)
 # Map architecture
 case "$ARCH" in
     x86_64) ARCH="x86_64" ;;
-    aarch64|arm64) ARCH="aarch64" ;;
+    aarch64|arm64)
+        if [ "$OS" = "linux" ]; then
+            echo "Error: Linux ARM64 not supported in beta. Use x86_64."
+            exit 1
+        fi
+        ARCH="aarch64"
+        ;;
     *)
         echo "Error: Unsupported architecture: $ARCH"
         exit 1
