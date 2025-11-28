@@ -55,6 +55,34 @@ impl LocalDB {
         Ok(())
     }
 
+    /// Insert multiple commands in a single transaction (much faster for bulk imports)
+    pub fn insert_commands_batch(&self, commands: &[(String, String, i32, i64)]) -> Result<usize> {
+        self.conn.execute("BEGIN TRANSACTION", [])?;
+        
+        let mut count = 0;
+        for (command, working_dir, exit_code, timestamp) in commands {
+            let command_normalized = Self::normalize(command);
+            if self.conn.execute(
+                "INSERT OR IGNORE INTO command_history (command, working_dir, context_tags, exit_code, duration_ms, timestamp, command_normalized)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    command,
+                    working_dir,
+                    Option::<String>::None,
+                    exit_code,
+                    Option::<i64>::None,
+                    timestamp,
+                    command_normalized
+                ],
+            ).is_ok() {
+                count += 1;
+            }
+        }
+        
+        self.conn.execute("COMMIT", [])?;
+        Ok(count)
+    }
+
     fn normalize(cmd: &str) -> String {
         cmd.trim().to_lowercase()
     }
@@ -167,5 +195,15 @@ impl LocalDB {
         });
 
         Ok(results)
+    }
+
+    /// Get total command count
+    pub fn get_command_count(&self) -> Result<i64> {
+        let count: i64 = self.conn.query_row(
+            "SELECT COUNT(*) FROM command_history",
+            [],
+            |row| row.get(0),
+        )?;
+        Ok(count)
     }
 }

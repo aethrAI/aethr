@@ -1,73 +1,83 @@
 use std::io::{self, Write};
 use std::time::Duration;
 use std::thread;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 /// Professional loading spinner for CLI operations
-/// Inspired by Claude, Gemini, and other enterprise CLIs
 pub struct Spinner {
     message: String,
-    spinner_type: SpinnerType,
-}
-
-#[derive(Clone, Copy)]
-pub enum SpinnerType {
-    /// Animated dots: ⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏
-    Braille,
-    /// Smooth rotating line: ⠋ ⠙ ⠚ ⠒ ⠂ ⠂ ⠒ ⠲ ⠴ ⠦ ⠖ ⠒ ⠐ ⠐ ⠒ ⠓ ⠋
-    Dots,
-    /// Arc animation: ◜ ◠ ◝ ◞ ◡ ◟
-    Arc,
-    /// Classic: | / - \
-    Line,
+    running: Arc<AtomicBool>,
+    handle: Option<thread::JoinHandle<()>>,
 }
 
 impl Spinner {
-    pub fn new(message: impl Into<String>) -> Self {
+    /// Create and start a new spinner with a message
+    pub fn start(message: impl Into<String>) -> Self {
+        let msg = message.into();
+        let running = Arc::new(AtomicBool::new(true));
+        let running_clone = running.clone();
+        let msg_clone = msg.clone();
+        
+        let handle = thread::spawn(move || {
+            let frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+            let mut idx = 0;
+            
+            while running_clone.load(Ordering::Relaxed) {
+                let frame = frames[idx % frames.len()];
+                print!("\r \x1b[36m{}\x1b[0m {}", frame, msg_clone);
+                io::stdout().flush().ok();
+                idx += 1;
+                thread::sleep(Duration::from_millis(80));
+            }
+            
+            // Clear the line
+            let clear_len = msg_clone.len() + 10;
+            print!("\r{}\r", " ".repeat(clear_len));
+            io::stdout().flush().ok();
+        });
+        
         Self {
-            message: message.into(),
-            spinner_type: SpinnerType::Braille,
+            message: msg,
+            running,
+            handle: Some(handle),
         }
     }
-
-    pub fn with_type(mut self, spinner_type: SpinnerType) -> Self {
-        self.spinner_type = spinner_type;
-        self
+    
+    /// Stop the spinner and show success message
+    pub fn success(mut self, message: impl AsRef<str>) {
+        self.stop_internal();
+        println!(" \x1b[32m+\x1b[0m {}", message.as_ref());
     }
-
-    /// Get the spinner frames based on type
-    fn frames(&self) -> &'static [&'static str] {
-        match self.spinner_type {
-            SpinnerType::Braille => &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"],
-            SpinnerType::Dots => &["⢿", "⣟", "⣯", "⣷", "⣾", "⣽", "⣻"],
-            SpinnerType::Arc => &["◜ ", "◠ ", "◝ ", "◞ ", "◡ ", "◟ "],
-            SpinnerType::Line => &["|", "/", "-", "\\"],
+    
+    /// Stop the spinner and show error message
+    pub fn error(mut self, message: impl AsRef<str>) {
+        self.stop_internal();
+        println!(" \x1b[31mx\x1b[0m {}", message.as_ref());
+    }
+    
+    /// Stop the spinner and show info message
+    pub fn info(mut self, message: impl AsRef<str>) {
+        self.stop_internal();
+        println!(" \x1b[36m-\x1b[0m {}", message.as_ref());
+    }
+    
+    /// Stop the spinner without printing anything
+    pub fn stop(mut self) {
+        self.stop_internal();
+    }
+    
+    fn stop_internal(&mut self) {
+        self.running.store(false, Ordering::Relaxed);
+        if let Some(handle) = self.handle.take() {
+            handle.join().ok();
         }
     }
+}
 
-    /// Run spinner for a duration or until manually stopped
-    pub fn start(&self) {
-        let frames = self.frames();
-        let mut idx = 0;
-
-        loop {
-            let frame = frames[idx % frames.len()];
-            print!("\r\x1b[36m{}\x1b[0m {}", frame, self.message);
-            io::stdout().flush().unwrap();
-
-            thread::sleep(Duration::from_millis(80));
-            idx += 1;
-
-            // Check for timeout or break signal
-            // In real usage, this would be tied to a completion event
-        }
-    }
-
-    /// Run spinner in the background (returns immediately)
-    /// Note: Real implementation would use a background thread with Arc<Mutex>
-    pub fn start_background(&self) {
-        // This is a placeholder - in production, use crossbeam or tokio
-        // For now, just show message
-        println!("\r\x1b[36m⠋\x1b[0m {}", self.message);
+impl Drop for Spinner {
+    fn drop(&mut self) {
+        self.running.store(false, Ordering::Relaxed);
     }
 }
 
@@ -76,23 +86,23 @@ pub struct Status;
 
 impl Status {
     pub fn success(message: impl AsRef<str>) {
-        println!("\r\x1b[32m✓\x1b[0m {}", message.as_ref());
+        println!("  \x1b[32m+\x1b[0m {}", message.as_ref());
     }
 
     pub fn error(message: impl AsRef<str>) {
-        println!("\r\x1b[31m✗\x1b[0m {}", message.as_ref());
+        println!("  \x1b[31mx\x1b[0m {}", message.as_ref());
     }
 
     pub fn info(message: impl AsRef<str>) {
-        println!("\r\x1b[36mℹ\x1b[0m {}", message.as_ref());
+        println!("  \x1b[36m-\x1b[0m {}", message.as_ref());
     }
 
     pub fn warning(message: impl AsRef<str>) {
-        println!("\r\x1b[33m⚠\x1b[0m {}", message.as_ref());
+        println!("  \x1b[33m!\x1b[0m {}", message.as_ref());
     }
 
     pub fn pending(message: impl AsRef<str>) {
-        println!("\r\x1b[36m→\x1b[0m {}", message.as_ref());
+        println!("  \x1b[36m>\x1b[0m {}", message.as_ref());
     }
 }
 
@@ -158,9 +168,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_spinner_frames() {
-        let spinner = Spinner::new("Testing");
-        assert!(!spinner.frames().is_empty());
+    fn test_spinner_start_stop() {
+        let spinner = Spinner::start("Testing");
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        spinner.stop();
     }
 
     #[test]

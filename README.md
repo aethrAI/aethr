@@ -1,397 +1,319 @@
-# Aethr MVP — Context-Gated Terminal Intelligence
+# Aethr — Terminal Intelligence That Learns
 
 **Aethr** is a local-first terminal assistant that learns your command patterns and helps you:
-- 🔍 **Recall** commands from your history with semantic search
-- 🤖 **Predict** what to type based on your intent  
-- 🔧 **Fix** errors with community solutions + rules engine
-- 📊 **Understand** your workflow with context detection
+- **Recall** commands with semantic search
+- **Fix** errors with community-powered solutions
+- **Auto-save** commands silently in the background
 
-**Core Promise**: Your terminal intelligence lives on your machine first. Optional cloud sync later.
+Your terminal intelligence lives on your machine. Optional community sync for shared fixes.
 
 ---
 
-## Quick Start (5 minutes)
-
-### Prerequisites
-- **Rust 1.70+** ([install](https://rustup.rs/))
-- **SQLite3** (usually pre-installed)
-- **Linux/macOS** (or WSL on Windows)
+## Quick Start
 
 ### Installation
 
 ```bash
-# 1. Clone and build
-git clone https://github.com/pinkabel/aethr.git
+# Clone and build
+git clone https://github.com/aethrAI/aethr.git
 cd aethr
 cargo build --release
 
-# 2. Initialize local database
-./target/release/aethr init
+# Add to PATH
+sudo cp target/release/aethr /usr/local/bin/
+# Or: export PATH="$PATH:$(pwd)/target/release"
 
-# 3. Seed with 54 community fixes
-./target/release/aethr seed-moat
+# Initialize
+aethr init
+```
 
-# 4. (Optional) Enable shell history logging
-cat << 'EOF' >> ~/.bashrc
-# Aethr command logging
-export HISTFILE="$HOME/.aethr/commands.log"
-EOF
-# Then open a new terminal
+### Setup Auto-Save
 
-# 5. Import your history
-./target/release/aethr import
+```bash
+# Install shell hook (adds to ~/.bashrc or ~/.zshrc)
+aethr hook --install
 
-# 6. Start using!
-./target/release/aethr                    # Interactive menu (NEW: no command needed!)
-./target/release/aethr recall "docker"    # Semantic search
-./target/release/aethr fix "permission"   # Error fixing
-./target/release/aethr run                # TUI explorer
+# Reload shell
+source ~/.bashrc  # or ~/.zshrc
+```
+
+### Import Existing History
+
+```bash
+aethr import
 ```
 
 ---
 
-## Features & Examples
+## Commands
 
-### 1. **Recall** — Semantic Search Over Your Commands
+### `aethr` — Interactive Mode
 
-```bash
-$ aethr recall "docker"
+Just run `aethr` with no arguments for an interactive prompt:
 
-🔍 Searching command history...
-�� Detected context: docker
+```
+$ aethr
 
-📋 Top matches (your history + community):
-⭐ 1. docker ps -a [used 5 times]
-⭐ 2. docker run -it ubuntu:latest [used 12 times]
-⭐ 3. docker logs -f <container_id> [used 3 times]
-   4. docker build -t myapp:latest .
-   5. sudo usermod -aG docker $USER && newgrp docker
+  Welcome to Aethr
+  Terminal Intelligence That Learns
+
+  Type a command or use / for options
+
+  > /recall docker build
 ```
 
-**Smart Ranking**:
-- ⭐ Commands that match your project context are highlighted
-- `[used X times]` shows frequency (how often you've run it)
-- Recent commands (24h) rank higher than old ones
-- Combines: 60% recency + 40% frequency + context boost
-
-### 2. **Fix** — Error Resolution with 3-Tier Pipeline
-
-**Layer 1: Deterministic Rules** (fastest, highest confidence)
-```bash
-$ aethr fix "permission denied"
-
-🔧 Analyzing error...
-
-✅ RULE MATCH (Deterministic):
-   Command: sudo chown $(whoami) -R . && chmod u+rwx -R .
-   Confidence: 60%
-   Explanation: Change ownership of current directory to your user.
-```
-
-**Layer 2: Community Moat** (proven solutions from real devs)
-```bash
-$ aethr fix "Cannot find module express"
-
-💡 COMMUNITY MOAT SUGGESTIONS:
-   (Fixes from real developers who solved this)
-
-   1. npm install express
-   2. npm ci
-```
-
-**Layer 3: LLM Fallback** (when rules & community don't help)
-```bash
-$ ANTHROPIC_API_KEY=sk-... aethr fix "weird error"
-
-🤖 LLM SUGGESTION:
-   Command: [AI-generated fix based on error text]
-```
-
-### 3. **Predict** — AI Command Suggestions
-
-```bash
-$ aethr predict "build and deploy to production"
-
-📍 Detected context: nodejs, git
-
-Prediction: docker build -t myapp:latest . && docker push myrepo/myapp:latest
-```
-
-LLM prompt automatically includes your project context for relevant suggestions.
-
-### 4. **Interactive TUI** — Visual Command Explorer
-
-```bash
-$ aethr run
-```
-
-Features:
-- 🎨 Color-coded results (context-relevant = yellow, selected = cyan)
-- ⌨️ Arrow keys to navigate, Enter to copy to clipboard
-- 🔍 Real-time search as you type
-- 📊 Shows frequency count and context boosts
-- 📱 Responsive, clean interface
+**Slash commands:**
+- `/recall <query>` — Search command history
+- `/fix <error>` — Get fix suggestions
+- `/import` — Import shell history
+- `/status` — Check Aethr status
+- `/help` — Show help
+- `/exit` — Exit
 
 ---
 
-## Context Detection
+### `aethr recall <query>` — Search Commands
 
-Aethr automatically detects your project type from the current directory:
+Search your command history with smart ranking:
 
-| File/Folder | Detected | Boost |
-|-------------|----------|-------|
-| `package.json` | Node.js | npm/yarn/node commands |
-| `requirements.txt` / `pyproject.toml` | Python | pip/python/venv commands |
-| `Dockerfile` | Docker | docker commands |
-| `Cargo.toml` | Rust | cargo commands |
-| `go.mod` | Go | go commands |
-| `pom.xml` | Java | maven/javac commands |
-| Kubernetes YAML | Kubernetes | kubectl/helm commands |
-| `.git/` | Git repo | git commands |
-
-**Example**: In a Node.js + Docker project:
 ```bash
-$ aethr recall "build"
+$ aethr recall docker build
 
-📍 Detected context: nodejs, docker
+ Searching: "docker build"
+ Context: docker
 
-📋 Top matches:
-⭐ 1. npm run build           ← npm boost (2.5x)
-⭐ 2. docker build -t app:v1  ← docker boost (2.5x)
+ Results:
+
+  *1 docker build -t myapp:latest .  (5x)
+  *2 docker build --no-cache -t api .  (2x)
+   3 docker-compose build  (3x)
+
+ * = boosted by current context
 ```
+
+**Features:**
+- Full-text search with FTS5
+- Context-aware boosting (detects project type)
+- Recency + frequency scoring
+- Shows usage count
 
 ---
 
-## Commands Reference
+### `aethr fix <error>` — Fix Errors
+
+Get fix suggestions from 3 layers:
 
 ```bash
-# Core commands
-aethr recall "<query>"        # Search your history
-aethr predict "<intent>"      # AI suggestions
-aethr fix "<error>"           # Fix errors (3-tier pipeline)
-aethr run                      # Interactive TUI
+$ aethr fix "command not found: node"
 
-# Setup
-aethr init                     # Create database & config
-aethr import                   # Import shell history
-aethr seed-moat               # Load 54 community fixes
-aethr status                   # Check config & API key
+ Analyzing: "command not found: node"
 
-# Authentication
-aethr login <token>           # Store API token (future)
+ Layer 3 Community Brain
+
+  1. brew install node
+    88% success (17 uses)
+
+  2. nvm install node
+    89% success (9 uses)
+
+ Did this fix work? [Y/n]
 ```
 
-All commands support `--help`:
+**3-Layer Resolution:**
+1. **Rules** — Deterministic fixes for common errors
+2. **Local History** — Your past solutions (coming soon)
+3. **Community Brain** — Crowdsourced fixes with success rates
+
+When you confirm a fix works, it's logged to improve future suggestions.
+
+---
+
+### `aethr import` — Import History
+
+Import commands from your shell history:
+
 ```bash
-aethr recall --help
-aethr fix --help
+$ aethr import
+
+ Importing shell history...
+
+ + Imported 1063 commands from bash history
+
+ + Total: 1063 commands imported
+```
+
+Supports: bash, zsh, fish
+
+---
+
+### `aethr status` — Check Status
+
+```bash
+$ aethr status
+
+Aethr Status
+
+  Configuration
+    Config dir:    /home/user/.aethr
+    Auto-save:     enabled (local only)
+    Shell hook:    installed
+
+  Database
+    Path:          /home/user/.aethr/aethr.db
+    Local history: 1063 commands
+    Community Brain: 42 fixes
+
+  Authentication
+    Status:        not logged in
 ```
 
 ---
 
-## Real-World Scenarios
+### `aethr hook` — Shell Integration
 
-### Scenario 1: Fix Docker Permission Error
-
-```bash
-$ docker ps
-permission denied while trying to connect to the Docker daemon
-
-$ aethr fix "permission denied"
-✅ RULE MATCH: sudo chown $(whoami) -R . && chmod u+rwx -R .
-```
-
-### Scenario 2: Search Git History in a Node Project
+Setup automatic command saving:
 
 ```bash
-$ cd ~/my-node-app  # Has package.json
-$ aethr recall "merge"
+# Show setup instructions
+aethr hook
 
-📍 Detected context: nodejs, git
+# Output hook for bash
+aethr hook bash
 
-📋 Top matches:
-⭐ 1. git merge --no-ff develop
-   2. git checkout -b feature/...
-```
+# Output hook for zsh
+aethr hook zsh
 
-### Scenario 3: Deploy Kubernetes Service
-
-```bash
-$ cd ~/k8s-config  # Has deployment.yaml with apiVersion
-$ aethr predict "deploy to production"
-
-📍 Detected context: kubernetes, git
-
-Prediction: kubectl apply -f deployment.yaml --namespace=prod
-```
-
-### Scenario 4: Python Virtual Environment Setup
-
-```bash
-$ aethr recall "venv"
-
-📍 Detected context: python
-
-📋 Top matches:
-⭐ 1. python -m venv venv
-⭐ 2. source venv/bin/activate
+# Auto-install to shell config
+aethr hook --install
 ```
 
 ---
 
-## Architecture
+## How It Works
+
+### Auto-Save
+
+When enabled, Aethr silently logs every command you run:
 
 ```
-┌─────────────────────────────────────────────────┐
-│           Command Query (recall/predict)        │
-└────────────────┬────────────────────────────────┘
-                 │
-         ┌───────▼────────┐
-         │ Context        │
-         │ Detection      │ ← Detects git, docker, nodejs, python, k8s
-         └───────┬────────┘
-                 │
-    ┌────────────▼────────────┐
-    │   Smart Ranking         │
-    │ (Recency + Frequency)   │ ← 60% recency + 40% frequency
-    └────────────┬────────────┘
-                 │
-    ┌────────────▼───────────────────┐
-    │  Context Boosting (2-2.5x)      │
-    │  Prioritize matching tech stack │
-    └────────────┬───────────────────┘
-                 │
-        ┌────────▼────────────┐
-        │  FTS5 Search Results│
-        │  + Community Moat   │
-        └────────┬────────────┘
-                 │
-         ┌───────▼────────┐
-         │ Local SQLite   │
-         │ (personal hist)│
-         │ + 54 moat cmds │
-         └────────────────┘
+Command → ~/.aethr/commands.log → Processed on next aethr run → Saved to SQLite
 ```
+
+No daemon required. Commands are imported automatically when you run any aethr command.
+
+### Context Detection
+
+Aethr detects your current project context by looking for:
+
+| File | Context Tag |
+|------|-------------|
+| `package.json` | nodejs |
+| `requirements.txt`, `pyproject.toml` | python |
+| `Dockerfile` | docker |
+| `Cargo.toml` | rust |
+| `go.mod` | go |
+| `*.tf` | terraform |
+| `kubectl`, `k8s` | kubernetes |
+
+Commands matching your context get boosted in search results.
+
+### Community Brain
+
+The Community Brain is a shared database of fixes:
+
+- Each fix has a **success rate** based on user feedback
+- Fixes are matched by error pattern + context
+- When you confirm a fix works, it improves the success rate
+- Anonymous — no personal data is shared
+
+---
+
+## Configuration
+
+Config stored in `~/.aethr/config.json`:
+
+```json
+{
+  "auto_save": true,
+  "share_to_community": false,
+  "shell_hook_installed": true
+}
+```
+
+### First Run Options
+
+On `aethr init`, you choose:
+
+1. **Enable auto-save (local only)** — Commands saved privately
+2. **Enable auto-save + Community Brain** — Help improve Aethr for everyone
+3. **Disable auto-save** — Import history manually
 
 ---
 
 ## Data Storage
 
+All data is stored locally in `~/.aethr/`:
+
 ```
 ~/.aethr/
-├── aethr.db              # SQLite database
-│   ├── command_history   # Your commands + metadata
-│   ├── command_fts       # Full-text search index
-│   ├── community_moat    # 54 curated fixes
-│   └── community_moat_fts # Moat search index
-├── config.toml           # User config (future)
-├── aethr_token           # API token (optional)
-└── commands.log          # Shell history (if using hook)
+├── config.json      # Settings
+├── aethr.db         # SQLite database (commands + fixes)
+├── commands.log     # Pending commands from shell hook
+└── token            # Auth token (optional)
 ```
 
 ---
 
-## Environment Variables
+## Requirements
 
-```bash
-# Claude API (for predict/fix LLM features)
-export ANTHROPIC_API_KEY=sk-...
-
-# Or use legacy name
-export CLAUDE_API_KEY=sk-...
-```
+- **Rust 1.70+** (for building)
+- **Linux/macOS** (or WSL on Windows)
 
 ---
 
-## Installation & Build
+## Development
 
-### From Source
 ```bash
-# Prerequisites (Ubuntu/Debian)
-sudo apt update && sudo apt install -y \
-  build-essential pkg-config libssl-dev libsqlite3-dev sqlite3 xclip
+# Build debug
+cargo build
 
-# Build
+# Build release
 cargo build --release
 
-# Binary location
-./target/release/aethr
-```
+# Run tests
+cargo test
 
-### Optional: System-Wide Install
-```bash
-cargo install --path .
-# Then use: aethr recall "..."
+# Run with logging
+RUST_LOG=debug cargo run
 ```
 
 ---
 
 ## Roadmap
 
-- ✅ **Phase 1 (MVP - Local)**: Recall, context detection, smart ranking, TUI, fix rules
-- 🟡 **Phase 2 (Cloud Integration)**: 
-  - Cloud API for community moat sync
-  - LLM integration for predictions
-  - Token authentication
-- 🔮 **Phase 3 (Monetization)**:
-  - API pricing ($0.08/call like Stripe)
-  - Premium features (team workspaces, advanced analytics)
+### v1 (Current)
+- [x] Semantic recall with context boosting
+- [x] Fix with 3-layer resolution
+- [x] Auto-save shell hook
+- [x] Community Brain with success rates
+- [x] Interactive mode
 
----
-
-## FAQ
-
-**Q: Does Aethr upload my command history to the cloud?**  
-A: No. Everything runs locally on your machine. Optional cloud sync is future work.
-
-**Q: What does "Community Moat" mean?**  
-A: 54 curated solutions from real developers solving common problems (docker, git, npm, python, k8s, etc.). Local copy, no cloud dependency.
-
-**Q: How do I contribute fixes?**  
-A: Future feature. Currently, the moat is seeded from proven solutions.
-
-**Q: Does it work without an API key?**  
-A: Yes! Recall, fix rules, and community moat work 100% offline. LLM features (predict, advanced fix) need ANTHROPIC_API_KEY.
-
-**Q: Can I use it in my CI/CD pipeline?**  
-A: Yes, all commands have exit codes. Example:
-```bash
-if aethr fix "deployment error" 2>/dev/null; then
-  echo "Fix found!"
-fi
-```
-
----
-
-## Contributing
-
-We welcome contributions! Areas for help:
-- Adding more moat entries (solutions for common errors)
-- Better error detection patterns
-- UI/UX improvements
-- Test coverage
-- Documentation
+### v2 (Planned)
+- [ ] LLM-powered fix suggestions
+- [ ] Natural language recall ("how did I install python")
+- [ ] Predict/autocomplete
+- [ ] Browser OAuth login
+- [ ] Cloud sync
 
 ---
 
 ## License
 
-MIT. See [LICENSE](LICENSE) for details.
+MIT
 
 ---
 
-## Credits
+## Links
 
-Built with ❤️ by [Pinkabel](https://github.com/pinkabel)
-
-**Using**:
-- [ratatui](https://github.com/ratatui-org/ratatui) — Terminal UI
-- [rusqlite](https://github.com/rusqlite/rusqlite) — SQLite bindings
-- [crossterm](https://github.com/crossterm-rs/crossterm) — Terminal control
-- [serde](https://github.com/serde-rs/serde) — Serialization
-- [regex](https://github.com/rust-lang/regex) — Pattern matching
-- [colored](https://github.com/mackwic/colored) — Terminal colors
-
----
-
-**Get Started**: `./target/release/aethr init && ./target/release/aethr recall "docker"`
+- Website: [aethr-ai.dev](https://aethr-ai.dev)
+- GitHub: [github.com/aethrAI/aethr](https://github.com/aethrAI/aethr)

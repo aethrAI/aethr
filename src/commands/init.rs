@@ -1,43 +1,88 @@
 use crate::Result;
 use crate::db::local::LocalDB;
-use crate::utils::config;
-use crate::ui::Status;
+use crate::utils::config::{self, AethrConfig};
+use crate::ui::{show_consent, AutoSaveChoice};
 use colored::*;
 
 pub fn run() -> Result<()> {
-    println!("{}", "╔══════════════════════════════════════════════════════════╗".cyan());
-    println!("{}", "║                    AETHR V1.0                            ║".cyan());
-    println!("{}", "║          Terminal Intelligence that learns               ║".cyan());
-    println!("{}", "╚══════════════════════════════════════════════════════════╝".cyan());
-    println!();
-
     let config_dir = config::config_dir();
+    let config_file = config_dir.join("config.json");
+    
+    // Check if this is first run (no config file)
+    let is_first_run = !config_file.exists();
+    
+    // Create config directory
     if !config_dir.exists() {
         std::fs::create_dir_all(&config_dir)?;
-        Status::success(format!("Created config directory: {}", config_dir.display()));
-    } else {
-        Status::info(format!("Config directory exists: {}", config_dir.display()));
+        println!(" {} Created {}", "+".green(), config_dir.display());
     }
 
+    // Initialize database
     let db_path = config::get_db_path();
     let _db = LocalDB::new(&db_path)?;
-    Status::success(format!("Created local database: {}", db_path.display()));
+    println!(" {} Database ready", "+".green());
 
-    // Create empty token file if missing (placeholder)
+    // Create token file
     let token_path = config::get_token_path();
     if !token_path.exists() {
-        std::fs::create_dir_all(config_dir.clone())?;
-        std::fs::write(&token_path, "# Add your API token here\n")?;
-        Status::success(format!("Created token file placeholder: {}", token_path.display()));
+        std::fs::write(&token_path, "")?;
+    }
+
+    // On first run, show consent prompt
+    if is_first_run {
+        println!();
+        
+        match show_consent() {
+            Ok(choice) => {
+                let config = match choice {
+                    AutoSaveChoice::LocalOnly => {
+                        println!(" {} Auto-save enabled (local only)", "+".green());
+                        AethrConfig {
+                            auto_save: true,
+                            share_to_community: false,
+                            shell_hook_installed: false,
+                        }
+                    }
+                    AutoSaveChoice::ShareToCommunity => {
+                        println!(" {} Auto-save enabled + Community Brain sharing", "+".green());
+                        AethrConfig {
+                            auto_save: true,
+                            share_to_community: true,
+                            shell_hook_installed: false,
+                        }
+                    }
+                    AutoSaveChoice::Disabled => {
+                        println!(" {} Auto-save disabled", "-".yellow());
+                        AethrConfig {
+                            auto_save: false,
+                            share_to_community: false,
+                            shell_hook_installed: false,
+                        }
+                    }
+                };
+                
+                config.save()?;
+            }
+            Err(e) => {
+                eprintln!(" {} Failed to show consent: {}", "x".red(), e);
+            }
+        }
+    }
+
+    // Show shell hook setup instructions if auto-save is enabled
+    let config = AethrConfig::load();
+    if config.auto_save && !config.shell_hook_installed {
+        println!();
+        println!(" {} To enable automatic command saving:", "!".yellow());
+        println!("   Run {} to install the shell hook", "aethr hook --install".cyan());
+        println!("   Or add to your shell config:");
+        println!("     {} (bash)", "eval \"$(aethr hook bash)\"".dimmed());
+        println!("     {} (zsh)", "eval \"$(aethr hook zsh)\"".dimmed());
     }
 
     println!();
-    println!("{}", "🎉 Aethr initialized successfully!".green().bold());
+    println!(" Aethr initialized. Run {} to import your shell history.", "aethr import".cyan());
     println!();
-    println!("{}", "📝 Next steps:".yellow());
-    println!("   1. Add the shell hook to log commands (optional).");
-    println!("   2. Run: {}", "aethr import".cyan());
-    println!("   3. Run: {}", "aethr recall <query>".cyan());
-    println!();
+
     Ok(())
 }

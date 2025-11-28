@@ -1,218 +1,153 @@
 #!/bin/bash
-# Aethr Quick Install Script
-# Downloads, builds, and configures Aethr in one command
+# Aethr Install Script
+# Usage: curl -fsSL https://aethr-ai.dev/install.sh | bash
 
-set -e  # Exit on any error
+set -e
+
+REPO="aethrAI/aethr"
+INSTALL_DIR="/usr/local/bin"
+BINARY_NAME="aethr"
 
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Functions
-print_header() {
-    echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║  Aethr Quick Install                   ║${NC}"
-    echo -e "${BLUE}║  Terminal Intelligence Tool            ║${NC}"
-    echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
-    echo ""
-}
+echo ""
+echo -e "${CYAN}Aethr Installer${NC}"
+echo ""
 
-print_success() {
-    echo -e "${GREEN}✓${NC} $1"
-}
+# Detect OS and architecture
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+ARCH=$(uname -m)
 
-print_error() {
-    echo -e "${RED}✗${NC} $1"
-}
-
-print_info() {
-    echo -e "${YELLOW}→${NC} $1"
-}
-
-check_prerequisites() {
-    print_info "Checking prerequisites..."
-    
-    # Check Rust
-    if ! command -v cargo &> /dev/null; then
-        print_error "Rust not found. Installing..."
-        curl --proto '=https' --tlsv1.2 -sSf https://rustup.rs | sh -s -- -y
-        source "$HOME/.cargo/env"
-        print_success "Rust installed"
-    else
-        RUST_VERSION=$(rustc --version | awk '{print $2}')
-        print_success "Rust $RUST_VERSION found"
-    fi
-    
-    # Check Git
-    if ! command -v git &> /dev/null; then
-        print_error "Git not found. Please install Git and try again."
+case "$ARCH" in
+    x86_64)
+        ARCH="x86_64"
+        ;;
+    aarch64|arm64)
+        ARCH="aarch64"
+        ;;
+    *)
+        echo -e "${RED}Unsupported architecture: $ARCH${NC}"
         exit 1
-    fi
-    print_success "Git found"
+        ;;
+esac
+
+case "$OS" in
+    linux)
+        TARGET="${ARCH}-unknown-linux-gnu"
+        ;;
+    darwin)
+        TARGET="${ARCH}-apple-darwin"
+        ;;
+    *)
+        echo -e "${RED}Unsupported OS: $OS${NC}"
+        exit 1
+        ;;
+esac
+
+echo "Detected: $OS/$ARCH"
+echo "Target: $TARGET"
+echo ""
+
+# Get latest release (or specific version)
+VERSION="${AETHR_VERSION:-}"
+if [ -z "$VERSION" ]; then
+    echo "Fetching latest release..."
+    LATEST=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+else
+    echo "Installing version: $VERSION"
+    LATEST="$VERSION"
+fi
+
+if [ -z "$LATEST" ]; then
+    echo -e "${RED}No releases found. Building from source...${NC}"
+    echo ""
     
-    # Check SQLite (usually pre-installed)
-    if ! command -v sqlite3 &> /dev/null; then
-        print_info "SQLite3 not found. Skipping (embedded in Aethr)."
+    # Check for Rust
+    if ! command -v cargo &> /dev/null; then
+        echo "Installing Rust..."
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        source "$HOME/.cargo/env"
+    fi
+    
+    # Clone and build
+    TEMP_DIR=$(mktemp -d)
+    cd "$TEMP_DIR"
+    git clone "https://github.com/$REPO.git" aethr
+    cd aethr
+    cargo build --release
+    
+    # Install
+    if [ -w "$INSTALL_DIR" ]; then
+        cp target/release/aethr "$INSTALL_DIR/"
     else
-        print_success "SQLite3 found"
+        sudo cp target/release/aethr "$INSTALL_DIR/"
     fi
-}
-
-clone_repo() {
-    print_info "Cloning Aethr repository..."
     
-    if [ -d "aethr" ]; then
-        print_info "aethr directory already exists, using existing..."
-        cd aethr
+    # Cleanup
+    cd /
+    rm -rf "$TEMP_DIR"
+else
+    echo "Latest version: $LATEST"
+    
+    # Download binary
+    DOWNLOAD_URL="https://github.com/$REPO/releases/download/$LATEST/aethr-$TARGET"
+    
+    echo "Downloading from $DOWNLOAD_URL..."
+    
+    TEMP_FILE=$(mktemp)
+    if curl -fsSL "$DOWNLOAD_URL" -o "$TEMP_FILE"; then
+        chmod +x "$TEMP_FILE"
+        
+        if [ -w "$INSTALL_DIR" ]; then
+            mv "$TEMP_FILE" "$INSTALL_DIR/$BINARY_NAME"
+        else
+            sudo mv "$TEMP_FILE" "$INSTALL_DIR/$BINARY_NAME"
+        fi
     else
-        git clone https://github.com/pinkabel/aethr.git
+        echo -e "${RED}Failed to download binary. Building from source...${NC}"
+        rm -f "$TEMP_FILE"
+        
+        # Fallback to source build
+        if ! command -v cargo &> /dev/null; then
+            echo "Installing Rust..."
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            source "$HOME/.cargo/env"
+        fi
+        
+        TEMP_DIR=$(mktemp -d)
+        cd "$TEMP_DIR"
+        git clone "https://github.com/$REPO.git" aethr
         cd aethr
-        print_success "Repository cloned"
-    fi
-}
-
-build_binary() {
-    print_info "Building Aethr (this may take 1-2 minutes)..."
-    cargo build --release 2>&1 | tail -5
-    print_success "Build complete!"
-}
-
-setup_database() {
-    print_info "Initializing database..."
-    ./target/release/aethr init > /dev/null 2>&1
-    print_success "Database initialized at ~/.aethr/aethr.db"
-}
-
-seed_moat() {
-    print_info "Loading community moat (58+ fixes)..."
-    ./target/release/aethr seed-moat > /dev/null 2>&1
-    print_success "Community moat loaded"
-}
-
-add_to_path() {
-    print_info "Setting up PATH..."
-    
-    # Create ~/.local/bin if it doesn't exist
-    mkdir -p ~/.local/bin
-    
-    # Copy binary
-    BINARY_PATH=$(pwd)/target/release/aethr
-    cp "$BINARY_PATH" ~/.local/bin/aethr
-    chmod +x ~/.local/bin/aethr
-    
-    # Add to shell config
-    SHELL_RC=""
-    if [ -n "$ZSH_VERSION" ]; then
-        SHELL_RC="$HOME/.zshrc"
-    elif [ -n "$BASH_VERSION" ]; then
-        SHELL_RC="$HOME/.bashrc"
-    elif [ -f "$HOME/.bashrc" ]; then
-        SHELL_RC="$HOME/.bashrc"
-    elif [ -f "$HOME/.zshrc" ]; then
-        SHELL_RC="$HOME/.zshrc"
-    fi
-    
-    if [ -n "$SHELL_RC" ]; then
-        if ! grep -q '~/.local/bin' "$SHELL_RC"; then
-            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_RC"
-            print_success "Added ~/.local/bin to PATH in $SHELL_RC"
+        cargo build --release
+        
+        if [ -w "$INSTALL_DIR" ]; then
+            cp target/release/aethr "$INSTALL_DIR/"
         else
-            print_success "PATH already configured"
+            sudo cp target/release/aethr "$INSTALL_DIR/"
         fi
+        
+        cd /
+        rm -rf "$TEMP_DIR"
     fi
-}
+fi
 
-setup_history_logging() {
-    print_info "Setting up optional shell history logging..."
-    
-    SHELL_RC=""
-    if [ -n "$ZSH_VERSION" ]; then
-        SHELL_RC="$HOME/.zshrc"
-    elif [ -n "$BASH_VERSION" ]; then
-        SHELL_RC="$HOME/.bashrc"
-    elif [ -f "$HOME/.bashrc" ]; then
-        SHELL_RC="$HOME/.bashrc"
-    elif [ -f "$HOME/.zshrc" ]; then
-        SHELL_RC="$HOME/.zshrc"
-    fi
-    
-    if [ -n "$SHELL_RC" ]; then
-        if ! grep -q 'Aethr command logging' "$SHELL_RC"; then
-            cat << 'EOF' >> "$SHELL_RC"
-
-# Aethr command logging
-export HISTFILE="$HOME/.aethr/commands.log"
-EOF
-            print_success "Shell history logging configured"
-        else
-            print_success "Shell history logging already configured"
-        fi
-    fi
-}
-
-test_installation() {
-    print_info "Testing installation..."
-    
-    # Test help
-    if ~/.local/bin/aethr --help > /dev/null 2>&1; then
-        print_success "Help command works"
-    fi
-    
-    # Test version
-    if ~/.local/bin/aethr --version > /dev/null 2>&1; then
-        print_success "Version check works"
-    fi
-}
-
-print_next_steps() {
+# Verify installation
+if command -v aethr &> /dev/null; then
     echo ""
-    echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║  Installation Complete! 🎉              ║${NC}"
-    echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
+    echo -e "${GREEN}Aethr installed successfully!${NC}"
     echo ""
-    echo -e "${BLUE}📝 Next steps:${NC}"
+    aethr --version
     echo ""
-    echo "  1. Reload your shell:"
-    echo "     ${YELLOW}source ~/.bashrc${NC}  (or ${YELLOW}source ~/.zshrc${NC})"
+    echo "Next steps:"
+    echo "  1. Run: aethr init"
+    echo "  2. Run: aethr import"
+    echo "  3. Run: aethr hook --install"
     echo ""
-    echo "  2. See the interactive menu:"
-    echo "     ${YELLOW}aethr${NC}"
-    echo ""
-    echo "  3. Search for a command:"
-    echo "     ${YELLOW}aethr recall \"docker\"${NC}"
-    echo ""
-    echo "  4. Fix an error:"
-    echo "     ${YELLOW}aethr fix \"permission denied\"${NC}"
-    echo ""
-    echo "  5. Get help:"
-    echo "     ${YELLOW}aethr --help${NC}"
-    echo ""
-    echo -e "${BLUE}📖 Documentation:${NC}"
-    echo "  - README.md (features & examples)"
-    echo "  - INSTALLATION.md (full setup guide)"
-    echo "  - BUSINESS_STRATEGY.md (vision & roadmap)"
-    echo ""
-    echo -e "${BLUE}🚀 Ready to use!${NC}"
-}
-
-main() {
-    print_header
-    
-    # Run installation steps
-    check_prerequisites
-    clone_repo
-    build_binary
-    setup_database
-    seed_moat
-    add_to_path
-    setup_history_logging
-    test_installation
-    
-    print_next_steps
-}
-
-# Run main
-main
+else
+    echo -e "${RED}Installation failed${NC}"
+    exit 1
+fi

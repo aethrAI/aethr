@@ -1,7 +1,14 @@
 [package]
 name = "aethr"
-version = "0.1.0"
+version = "1.0.0-beta"
 edition = "2021"
+description = "Terminal Intelligence That Learns - semantic recall and error fixing"
+license = "MIT"
+repository = "https://github.com/aethrAI/aethr"
+homepage = "https://aethr-ai.dev"
+readme = "README.md"
+keywords = ["cli", "terminal", "shell", "history", "productivity"]
+categories = ["command-line-utilities", "development-tools"]
 
 [[bin]]
 name = "aethr"
