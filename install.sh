@@ -57,8 +57,9 @@ echo "Target: $TARGET"
 echo ""
 
 # Get latest release (or specific version)
-VERSION="${AETHR_VERSION:-}"
-if [ -z "$VERSION" ]; then
+# During beta: default to v1.0.0-beta. Change to "" for public release.
+VERSION="${AETHR_VERSION:-v1.0.0-beta}"
+if [ "$VERSION" = "latest" ]; then
     echo "Fetching latest release..."
     LATEST=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 else
