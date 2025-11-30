@@ -25,6 +25,9 @@ jobs:
           - target: aarch64-apple-darwin
             os: macos-latest
             cross: false
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            cross: false
 
     steps:
       - uses: actions/checkout@v4
@@ -37,19 +40,27 @@ jobs:
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Strip binary
+      - name: Strip binary (Unix)
+        if: matrix.os != 'windows-latest'
         run: strip target/${{ matrix.target }}/release/aethr
 
-      - name: Package
+      - name: Package (Unix)
+        if: matrix.os != 'windows-latest'
         run: |
           cd target/${{ matrix.target }}/release
           cp aethr ../../../aethr-${{ matrix.target }}
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          cp aethr.exe ../../../aethr-${{ matrix.target }}.exe
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: aethr-${{ matrix.target }}
-          path: aethr-${{ matrix.target }}
+          path: aethr-${{ matrix.target }}${{ matrix.os == 'windows-latest' && '.exe' || '' }}
 
   release:
     name: Create Release
@@ -70,6 +81,7 @@ jobs:
             artifacts/aethr-x86_64-unknown-linux-gnu/aethr-x86_64-unknown-linux-gnu
             artifacts/aethr-x86_64-apple-darwin/aethr-x86_64-apple-darwin
             artifacts/aethr-aarch64-apple-darwin/aethr-aarch64-apple-darwin
+            artifacts/aethr-x86_64-pc-windows-msvc/aethr-x86_64-pc-windows-msvc.exe
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
