@@ -13,6 +13,12 @@ Your terminal intelligence lives on your machine. Optional community sync for sh
 
 ### Installation
 
+**One-line install (Linux, macOS, Windows Git Bash):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/aethrAI/aethr/master/install.sh | bash
+```
+
+**Or build from source:**
 ```bash
 # Clone and build
 git clone https://github.com/aethrAI/aethr.git
@@ -22,8 +28,10 @@ cargo build --release
 # Add to PATH
 sudo cp target/release/aethr /usr/local/bin/
 # Or: export PATH="$PATH:$(pwd)/target/release"
+```
 
-# Initialize
+**Then initialize:**
+```bash
 aethr init
 ```
 
