@@ -15,7 +15,7 @@ Your terminal intelligence lives on your machine. Optional community sync for sh
 
 **One-line install (Linux, macOS, Windows Git Bash):**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/aethrAI/aethr/master/install.sh | bash
+curl -fsSL https://aethr-ai.dev/install.sh | bash
 ```
 
 **Or build from source:**
