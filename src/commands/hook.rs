@@ -165,26 +165,27 @@ pub fn setup() -> Result<()> {
         // Add hook to shell config
         let hook_line = format!("\n# Aethr auto-save\neval \"$(aethr hook {})\"\n", shell_name);
     
-    let mut content = if rc_file.exists() {
-        fs::read_to_string(&rc_file)?
-    } else {
-        String::new()
-    };
-    
-    content.push_str(&hook_line);
-    fs::write(&rc_file, content)?;
-    
-    // Update config
-    let mut config = config;
-    config.shell_hook_installed = true;
-    config.save()?;
-    
-    println!();
-    println!("{} Shell hook installed in {}", "+".green(), rc_file.display());
-    println!();
-    println!("Reload your shell to activate:");
-    println!("  {}", format!("source {}", rc_file.display()).cyan());
-    println!();
-    
-    Ok(())
+        let mut content = if rc_file.exists() {
+            fs::read_to_string(&rc_file)?
+        } else {
+            String::new()
+        };
+        
+        content.push_str(&hook_line);
+        fs::write(&rc_file, content)?;
+        
+        // Update config
+        let mut config = config;
+        config.shell_hook_installed = true;
+        config.save()?;
+        
+        println!();
+        println!("{} Shell hook installed in {}", "+".green(), rc_file.display());
+        println!();
+        println!("Reload your shell to activate:");
+        println!("  {}", format!("source {}", rc_file.display()).cyan());
+        println!();
+        
+        Ok(())
+    }
 }
