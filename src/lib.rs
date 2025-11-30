@@ -1,6 +1,7 @@
 // Aethr core lib exports
 pub mod commands;
 pub mod core;
+#[cfg(unix)]
 pub mod daemon;
 pub mod context;
 pub mod db;
