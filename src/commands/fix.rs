@@ -2,6 +2,7 @@ use crate::Result;
 use crate::core::apply_rules_from_path;
 use crate::db::community_brain::CommunityBrain;
 use crate::context::detector::detect_project_context;
+use crate::llm::ClaudeClient;
 use crate::utils::config;
 use colored::*;
 use std::io::{self, Write};
@@ -82,14 +83,38 @@ pub fn run(error: &str) -> Result<()> {
         }
     }
 
-    // Layer 4: LLM fallback (coming soon)
-    println!(" {} No match found", "-".yellow());
+    // Layer 4: LLM fallback (Claude)
+    if let Some(client) = ClaudeClient::from_env() {
+        println!(" {} Asking Claude...", "Layer 3".cyan().bold());
+        println!();
+        
+        match client.get_fix(error, context_str.as_deref()) {
+            Ok(suggestion) => {
+                if !suggestion.command.is_empty() {
+                    show_fix(&suggestion.command, None, None, &suggestion.explanation);
+                    println!(" {} LLM suggestion", "Source:".dimmed());
+                    println!();
+                    prompt_feedback(&suggestion.command, error, context_str.as_deref())?;
+                    return Ok(());
+                }
+            }
+            Err(e) => {
+                println!(" {} LLM error: {}", "!".yellow(), e.to_string().chars().take(50).collect::<String>());
+                println!();
+            }
+        }
+    }
+
+    // No solution found
+    println!(" {} No fix found", "x".red());
     println!();
-    println!(" Searched: rules, Community Brain");
+    println!(" Searched: rules, Community Brain{}", 
+        if ClaudeClient::from_env().is_some() { ", Claude" } else { "" });
     println!();
-    println!(" {} LLM-powered suggestions coming soon.", "!".cyan());
-    println!("   For now, try searching online or check the documentation.");
-    println!();
+    if ClaudeClient::from_env().is_none() {
+        println!(" {} Set ANTHROPIC_API_KEY for LLM suggestions", "Tip:".dimmed());
+        println!();
+    }
     
     Ok(())
 }

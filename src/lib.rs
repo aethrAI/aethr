@@ -4,6 +4,7 @@ pub mod core;
 pub mod daemon;
 pub mod context;
 pub mod db;
+pub mod llm;
 pub mod models;
 pub mod utils;
 pub mod ui;
