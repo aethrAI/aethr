@@ -126,27 +126,44 @@ pub fn setup() -> Result<()> {
         return Ok(());
     }
     
-    // Detect shell
-    let shell = std::env::var("SHELL").unwrap_or_default();
-    let (rc_file, shell_name): (PathBuf, &str) = if shell.contains("zsh") {
-        (dirs::home_dir().unwrap().join(".zshrc"), "zsh")
-    } else {
-        (dirs::home_dir().unwrap().join(".bashrc"), "bash")
-    };
-    
-    // Check if already installed
-    if rc_file.exists() {
-        let content = fs::read_to_string(&rc_file)?;
-        if content.contains("aethr hook") {
-            println!();
-            println!("{} Shell hook already installed in {}", "+".green(), rc_file.display());
-            println!();
-            return Ok(());
-        }
+    // Check for Windows
+    #[cfg(windows)]
+    {
+        println!();
+        println!("{} Shell hooks work differently on Windows.", "!".yellow());
+        println!();
+        println!("For Git Bash, add to ~/.bashrc:");
+        println!("  {}", "eval \"$(aethr hook bash)\"".cyan());
+        println!();
+        println!("For PowerShell, shell hooks are not yet supported.");
+        println!("You can still use {} and {} manually.", "aethr recall".cyan(), "aethr fix".cyan());
+        println!();
+        return Ok(());
     }
     
-    // Add hook to shell config
-    let hook_line = format!("\n# Aethr auto-save\neval \"$(aethr hook {})\"\n", shell_name);
+    #[cfg(not(windows))]
+    {
+        // Detect shell
+        let shell = std::env::var("SHELL").unwrap_or_default();
+        let (rc_file, shell_name): (PathBuf, &str) = if shell.contains("zsh") {
+            (dirs::home_dir().unwrap().join(".zshrc"), "zsh")
+        } else {
+            (dirs::home_dir().unwrap().join(".bashrc"), "bash")
+        };
+        
+        // Check if already installed
+        if rc_file.exists() {
+            let content = fs::read_to_string(&rc_file)?;
+            if content.contains("aethr hook") {
+                println!();
+                println!("{} Shell hook already installed in {}", "+".green(), rc_file.display());
+                println!();
+                return Ok(());
+            }
+        }
+        
+        // Add hook to shell config
+        let hook_line = format!("\n# Aethr auto-save\neval \"$(aethr hook {})\"\n", shell_name);
     
     let mut content = if rc_file.exists() {
         fs::read_to_string(&rc_file)?

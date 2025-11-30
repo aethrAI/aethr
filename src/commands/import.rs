@@ -21,11 +21,22 @@ pub fn run() -> Result<()> {
     let mut total_imported = 0;
     
     // Try to import from shell history files
-    let history_files = [
+    let mut history_files: Vec<(PathBuf, &str)> = vec![
         (home.join(".bash_history"), "bash"),
         (home.join(".zsh_history"), "zsh"),
-        (home.join(".local/share/fish/fish_history"), "fish"),
     ];
+    
+    // Add platform-specific paths
+    #[cfg(unix)]
+    history_files.push((home.join(".local/share/fish/fish_history"), "fish"));
+    
+    // Git Bash on Windows uses different paths
+    #[cfg(windows)]
+    {
+        if let Ok(appdata) = std::env::var("APPDATA") {
+            history_files.push((PathBuf::from(&appdata).join("Microsoft\\Windows\\PowerShell\\PSReadLine\\ConsoleHost_history.txt"), "powershell"));
+        }
+    }
     
     println!();
     
