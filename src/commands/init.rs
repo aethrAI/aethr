@@ -30,9 +30,17 @@ pub fn run() -> Result<()> {
     if is_first_run {
         match show_consent() {
             Ok(choice) => {
+                // Clear and show results
+                print!("\x1B[2J\x1B[H");
+                
+                let version = env!("CARGO_PKG_VERSION");
+                println!("\x1B[33mWelcome to Aethr\x1B[0m");
+                println!("Version {}", version);
+                println!();
+                
                 let config = match choice {
                     AutoSaveChoice::LocalOnly => {
-                        println!("  \x1B[32m✓\x1B[0m Auto-save enabled \x1B[90m(local only)\x1B[0m");
+                        println!("\x1B[33m●\x1B[0m Auto-save enabled (local only)");
                         AethrConfig {
                             auto_save: true,
                             share_to_community: false,
@@ -40,7 +48,7 @@ pub fn run() -> Result<()> {
                         }
                     }
                     AutoSaveChoice::ShareToCommunity => {
-                        println!("  \x1B[32m✓\x1B[0m Auto-save enabled \x1B[90m+ Community sharing\x1B[0m");
+                        println!("\x1B[33m●\x1B[0m Auto-save enabled + community sharing");
                         AethrConfig {
                             auto_save: true,
                             share_to_community: true,
@@ -48,7 +56,7 @@ pub fn run() -> Result<()> {
                         }
                     }
                     AutoSaveChoice::Disabled => {
-                        println!("  \x1B[33m○\x1B[0m Auto-save disabled");
+                        println!("\x1B[90m○\x1B[0m Auto-save disabled");
                         AethrConfig {
                             auto_save: false,
                             share_to_community: false,
@@ -57,42 +65,39 @@ pub fn run() -> Result<()> {
                     }
                 };
                 
-                println!("  \x1B[32m✓\x1B[0m Database initialized");
+                println!("\x1B[33m●\x1B[0m Database initialized");
+                println!("\x1B[33m●\x1B[0m Configuration saved");
                 
                 config.save()?;
+                
+                // Show next steps
+                println!();
+                if config.auto_save {
+                    println!("\x1B[1mNext steps:\x1B[0m");
+                    println!();
+                    println!("  1. Install shell hook:");
+                    println!("     \x1B[90m$ aethr hook --install\x1B[0m");
+                    println!();
+                    println!("  2. Import existing history:");
+                    println!("     \x1B[90m$ aethr import\x1B[0m");
+                } else {
+                    println!("\x1B[1mNext step:\x1B[0m");
+                    println!();
+                    println!("  Import your existing history:");
+                    println!("  \x1B[90m$ aethr import\x1B[0m");
+                }
+                
+                println!();
+                println!("\x1B[32mInitialization complete!\x1B[0m");
             }
             Err(e) => {
-                eprintln!("  \x1B[31m✗\x1B[0m Failed to show consent: {}", e);
+                eprintln!("\x1B[31m✗\x1B[0m Failed: {}", e);
             }
         }
     } else {
-        // Not first run, just show status
-        println!("Already initialized");
+        println!("Already initialized. Run \x1B[90maethr status\x1B[0m to see current config.");
     }
-
-    // Show next steps
-    let config = AethrConfig::load();
-    
-    println!();
-    println!("  \x1B[1mNext steps:\x1B[0m");
-    println!();
-    
-    if config.auto_save && !config.shell_hook_installed {
-        println!("  \x1B[36m1.\x1B[0m Install shell hook for auto-save:");
-        println!("     \x1B[90m$ aethr hook --install\x1B[0m");
-        println!();
-        println!("  \x1B[36m2.\x1B[0m Import your existing history:");
-        println!("     \x1B[90m$ aethr import\x1B[0m");
-    } else {
-        println!("  \x1B[36m●\x1B[0m Import your existing history:");
-        println!("     \x1B[90m$ aethr import\x1B[0m");
-    }
-    
-    println!();
-    println!("  \x1B[1;32mInitialization complete!\x1B[0m");
-    println!();
     
     io::stdout().flush()?;
-    
     Ok(())
 }

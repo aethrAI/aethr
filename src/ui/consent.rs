@@ -13,7 +13,7 @@ pub enum AutoSaveChoice {
 
 pub struct ConsentPrompt {
     selected: usize,
-    options: Vec<(&'static str, &'static str, AutoSaveChoice)>,
+    options: Vec<(&'static str, AutoSaveChoice)>,
 }
 
 impl ConsentPrompt {
@@ -21,55 +21,72 @@ impl ConsentPrompt {
         Self {
             selected: 0,
             options: vec![
-                ("Auto-save locally", "Commands saved on your machine only", AutoSaveChoice::LocalOnly),
-                ("Auto-save + Community", "Help improve Aethr for everyone", AutoSaveChoice::ShareToCommunity),
-                ("Disable auto-save", "Import history manually later", AutoSaveChoice::Disabled),
+                ("Save locally only", AutoSaveChoice::LocalOnly),
+                ("Save locally + share to community", AutoSaveChoice::ShareToCommunity),
+                ("Don't save automatically", AutoSaveChoice::Disabled),
             ],
         }
-    }
-
-    fn print_logo(&self) {
-        println!();
-        println!("\x1B[1;37m        █████╗ ███████╗████████╗██╗  ██╗██████╗ \x1B[0m");
-        println!("\x1B[1;37m       ██╔══██╗██╔════╝╚══██╔══╝██║  ██║██╔══██╗\x1B[0m");
-        println!("\x1B[1;37m       ███████║█████╗     ██║   ███████║██████╔╝\x1B[0m");
-        println!("\x1B[1;37m       ██╔══██║██╔══╝     ██║   ██╔══██║██╔══██╗\x1B[0m");
-        println!("\x1B[1;37m       ██║  ██║███████╗   ██║   ██║  ██║██║  ██║\x1B[0m");
-        println!("\x1B[1;37m       ╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝\x1B[0m");
-        println!();
-        println!("\x1B[2m       Terminal Intelligence That Learns\x1B[0m");
-        println!();
     }
 
     fn draw(&self) {
         // Clear screen
         print!("\x1B[2J\x1B[H");
         
-        self.print_logo();
+        let version = env!("CARGO_PKG_VERSION");
         
-        println!("  \x1B[1mSetup\x1B[0m");
-        println!();
-        println!("  Aethr can automatically save your commands to improve");
-        println!("  recall and fix suggestions.");
-        println!();
-        println!("  Your data stays on your machine unless you choose to share.");
-        println!();
-        println!("  \x1B[90mSelect an option:\x1B[0m");
+        // Header
+        println!("\x1B[33mWelcome to Aethr\x1B[0m");
+        println!("Version {}", version);
         println!();
         
-        for (idx, (label, desc, _)) in self.options.iter().enumerate() {
-            if idx == self.selected {
-                println!("  \x1B[46;30m ● {:<28} \x1B[0m", label);
-                println!("    \x1B[36m{}\x1B[0m", desc);
+        // Description
+        println!("Aethr helps you recall, fix, and organize your terminal commands.");
+        println!("Enter ? for help. Aethr learns from your history.");
+        println!();
+        
+        // Section header
+        println!("\x1B[1mConfigure auto-save\x1B[0m");
+        println!();
+        
+        // Find longest option for box width
+        let max_len = self.options.iter().map(|(s, _)| s.len()).max().unwrap_or(30);
+        let box_width = max_len + 6;
+        
+        // Top border
+        println!("┌{}┐", "─".repeat(box_width));
+        
+        // Options inside box
+        for (idx, (label, _)) in self.options.iter().enumerate() {
+            let is_selected = idx == self.selected;
+            let marker = if is_selected { "●" } else { "○" };
+            let padding = box_width - label.len() - 4;
+            
+            if is_selected {
+                // Highlighted - yellow/gold marker
+                println!("│ \x1B[33m{}\x1B[0m {}{} │", marker, label, " ".repeat(padding));
             } else {
-                println!("  \x1B[90m ○\x1B[0m {}", label);
-                println!("    \x1B[90m{}\x1B[0m", desc);
+                // Normal - dim
+                println!("│ \x1B[90m{}\x1B[0m {}{} │", marker, label, " ".repeat(padding));
             }
-            println!();
         }
         
+        // Bottom border
+        println!("└{}┘", "─".repeat(box_width));
+        
         println!();
-        println!("  \x1B[90m↑↓ Navigate  Enter Select\x1B[0m");
+        
+        // Explanation text
+        println!("Aethr can automatically save your commands to improve recall and");
+        println!("fix suggestions. Your data stays on your machine unless you choose");
+        println!("to share with the community to help improve Aethr for everyone.");
+        println!();
+        
+        // Question
+        println!("Which option would you like?");
+        println!();
+        
+        // Keyboard shortcuts
+        println!("\x1B[90m↑↓ Navigate  Enter Select  Esc Cancel\x1B[0m");
         
         io::stdout().flush().unwrap();
     }
@@ -82,6 +99,7 @@ impl ConsentPrompt {
     }
 
     pub fn run(&mut self) -> io::Result<AutoSaveChoice> {
+        print!("\x1B[?25l"); // Hide cursor
         self.draw();
         
         if enable_raw_mode().is_err() {
@@ -115,21 +133,9 @@ impl ConsentPrompt {
                                 }
                             }
                             (KeyCode::Enter, _) => {
-                                let choice = self.options[self.selected].2;
+                                let choice = self.options[self.selected].1;
                                 self.cleanup();
                                 return Ok(choice);
-                            }
-                            (KeyCode::Char('1'), _) => {
-                                self.selected = 0;
-                                self.draw();
-                            }
-                            (KeyCode::Char('2'), _) => {
-                                self.selected = 1;
-                                self.draw();
-                            }
-                            (KeyCode::Char('3'), _) => {
-                                self.selected = 2;
-                                self.draw();
                             }
                             _ => {}
                         }
