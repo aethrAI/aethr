@@ -1,11 +1,10 @@
 use crossterm::{
-    cursor::{Hide, Show, MoveTo, MoveToColumn, SavePosition, RestorePosition},
+    cursor,
     event::{self, Event, KeyCode, KeyModifiers, KeyEventKind},
-    terminal::{disable_raw_mode, enable_raw_mode, size, Clear, ClearType},
-    style::Print,
-    ExecutableCommand, QueueableCommand,
+    terminal::{self, disable_raw_mode, enable_raw_mode, size, ClearType},
+    execute, queue,
 };
-use std::io::{self, Write, stdout};
+use std::io::{self, Write, stdout, Stdout};
 
 use crate::utils::config::{self, AethrConfig};
 
@@ -17,317 +16,386 @@ pub struct SlashCommand {
 
 pub struct InteractivePrompt {
     input: String,
+    cursor_pos: usize,
     commands: Vec<SlashCommand>,
-    selected_command: usize,
+    selected_idx: usize,
     show_menu: bool,
-    username: Option<String>,
-    header_lines: u16,
+    start_row: u16,
 }
 
 impl InteractivePrompt {
     pub fn new() -> Self {
-        let username = std::env::var("USER")
-            .or_else(|_| std::env::var("USERNAME"))
-            .ok();
-        
         Self {
             input: String::new(),
+            cursor_pos: 0,
             commands: vec![
                 SlashCommand { name: "recall", description: "Search command history" },
                 SlashCommand { name: "fix", description: "Fix a terminal error" },
                 SlashCommand { name: "import", description: "Import shell history" },
                 SlashCommand { name: "init", description: "Initialize Aethr" },
                 SlashCommand { name: "status", description: "Check Aethr status" },
-                SlashCommand { name: "clear", description: "Clear conversation" },
-                SlashCommand { name: "help", description: "Show help" },
+                SlashCommand { name: "clear", description: "Clear the screen" },
+                SlashCommand { name: "help", description: "Show help for commands" },
                 SlashCommand { name: "exit", description: "Exit Aethr" },
             ],
-            selected_command: 0,
+            selected_idx: 0,
             show_menu: false,
-            username,
-            header_lines: 0,
+            start_row: 0,
         }
     }
 
-    fn get_term_width(&self) -> u16 {
+    fn term_width() -> u16 {
         size().map(|(w, _)| w).unwrap_or(80)
     }
 
-    fn print_header(&mut self) {
+    fn print_static_header(&self) {
         let version = env!("CARGO_PKG_VERSION");
-        let term_width = self.get_term_width() as usize;
+        let w = Self::term_width() as usize;
         
-        // Yellow header
-        println!("\x1B[33mWelcome to Aethr CLI\x1B[0m");
+        // Yellow "Welcome" header
+        println!("\x1b[33mWelcome to Aethr CLI\x1b[0m");
         println!("Version {}", version);
         println!();
         
-        // Description
+        // Description text
         println!("Aethr helps you recall, fix, and organize your terminal commands. Describe");
         println!("what you need or enter ? for help. Aethr learns from your history.");
         println!();
         
         // Status bullets
         let token_path = config::get_token_path();
-        let logged_in = token_path.exists() && 
-            std::fs::read_to_string(&token_path)
-                .map(|s| !s.trim().is_empty())
-                .unwrap_or(false);
+        let has_token = token_path.exists() && 
+            std::fs::read_to_string(&token_path).map(|s| !s.trim().is_empty()).unwrap_or(false);
         
-        if logged_in {
-            if let Some(ref user) = self.username {
-                println!("\x1B[33m●\x1B[0m Logged in as user: \x1B[1m{}\x1B[0m", user);
-            } else {
-                println!("\x1B[33m●\x1B[0m Logged in");
-            }
+        let username = std::env::var("USER").or_else(|_| std::env::var("USERNAME")).unwrap_or_default();
+        
+        if has_token {
+            println!("\x1b[33m●\x1b[0m Logged in as user: \x1b[1m{}\x1b[0m", username);
         } else {
-            println!("\x1B[90m○\x1B[0m Not logged in \x1B[90m(run aethr login)\x1B[0m");
+            println!("\x1b[90m○ Not logged in\x1b[0m");
         }
         
-        let config = AethrConfig::load();
-        if config.auto_save {
-            println!("\x1B[33m●\x1B[0m Auto-save enabled");
+        let cfg = AethrConfig::load();
+        if cfg.auto_save {
+            println!("\x1b[33m●\x1b[0m Auto-save enabled");
         }
         
         println!();
         
-        // Current directory + model badge
+        // Directory path and model badge on same line
         let cwd = std::env::current_dir()
             .map(|p| p.display().to_string())
-            .unwrap_or_else(|_| "~".to_string());
+            .unwrap_or_else(|_| String::from("~"));
         
-        let model_text = "claude-sonnet-4.5 (1x)";
-        let max_path = term_width.saturating_sub(model_text.len() + 4);
-        let display_path = if cwd.len() > max_path {
-            format!("...{}", &cwd[cwd.len().saturating_sub(max_path - 3)..])
+        let model = "claude-sonnet-4.5 (1x)";
+        let available = w.saturating_sub(model.len() + 2);
+        let path_display = if cwd.len() > available {
+            format!("...{}", &cwd[cwd.len() - available + 3..])
         } else {
             cwd
         };
         
-        let spaces = term_width.saturating_sub(display_path.len() + model_text.len());
-        println!("{}{}\x1B[90m{}\x1B[0m", display_path, " ".repeat(spaces), model_text);
+        let gap = w.saturating_sub(path_display.len() + model.len());
+        println!("{}{}\x1b[90m{}\x1b[0m", path_display, " ".repeat(gap), model);
         
-        // Thick separator line
-        println!("{}", "━".repeat(term_width));
-        
-        self.header_lines = 12; // Approximate lines used by header
+        // Thick top separator
+        println!("\x1b[90m{}\x1b[0m", "━".repeat(w));
     }
 
-    fn draw_prompt_area(&self) {
-        let term_width = self.get_term_width() as usize;
+    fn render_input_line(&self, stdout: &mut Stdout) -> io::Result<()> {
+        let w = Self::term_width() as usize;
         
-        // Input line with cursor block
+        // Clear current line and print prompt
+        queue!(stdout, cursor::MoveToColumn(0), terminal::Clear(ClearType::CurrentLine))?;
+        
+        // Prompt character
         print!("> ");
-        if self.input.is_empty() {
-            print!("\x1B[7m \x1B[0m"); // Inverted space as cursor
-            print!("\x1B[90mEnter / for commands\x1B[0m");
-        } else {
-            print!("{}", self.input);
-            print!("\x1B[7m \x1B[0m"); // Cursor at end
-        }
-        println!();
         
-        // Command dropdown menu
-        if self.show_menu {
-            let filter = if self.input.starts_with('/') { &self.input[1..] } else { "" };
-            let filtered: Vec<_> = self.commands.iter()
-                .filter(|c| filter.is_empty() || c.name.to_lowercase().starts_with(&filter.to_lowercase()))
-                .collect();
-            
-            if !filtered.is_empty() {
-                for (i, cmd) in filtered.iter().enumerate() {
-                    let is_selected = i == self.selected_command;
-                    
-                    if is_selected {
-                        // Yellow square indicator for selected
-                        print!("\x1B[33m█\x1B[0m ");
-                        print!("\x1B[36m/{:<18}\x1B[0m", cmd.name);
-                        println!("\x1B[33m{}\x1B[0m", cmd.description);
-                    } else {
-                        print!("\x1B[90m█\x1B[0m ");
-                        print!("\x1B[36m/{:<18}\x1B[0m", cmd.name);
-                        println!("\x1B[90m{}\x1B[0m", cmd.description);
-                    }
-                }
+        if self.input.is_empty() {
+            // Placeholder with blinking cursor
+            print!("\x1b[7m \x1b[0m\x1b[90mEnter / for commands\x1b[0m");
+        } else {
+            // Show input with cursor
+            let (before, after) = self.input.split_at(self.cursor_pos.min(self.input.len()));
+            print!("{}\x1b[7m", before);
+            if after.is_empty() {
+                print!(" ");
+            } else {
+                print!("{}", after.chars().next().unwrap_or(' '));
+            }
+            print!("\x1b[0m");
+            if after.len() > 1 {
+                print!("{}", &after[1..]);
             }
         }
         
-        // Bottom separator
-        println!("{}", "━".repeat(term_width));
-        
-        // Shortcuts footer
-        println!("\x1B[1mCtrl+C\x1B[0m Exit  \x1B[90m·\x1B[0m  \x1B[1mCtrl+R\x1B[0m Expand recent");
-        
-        io::stdout().flush().unwrap();
+        stdout.flush()
     }
 
-    fn redraw(&self) {
-        // Move cursor up to overwrite prompt area, clear, redraw
-        let lines_to_clear = if self.show_menu {
-            3 + self.get_filtered_commands(&self.get_filter()).len() as u16
+    fn render_menu(&self, stdout: &mut Stdout) -> io::Result<u16> {
+        if !self.show_menu {
+            return Ok(0);
+        }
+        
+        let filter = if self.input.starts_with('/') { &self.input[1..] } else { "" };
+        let filtered: Vec<_> = self.commands.iter()
+            .filter(|c| filter.is_empty() || c.name.to_lowercase().starts_with(&filter.to_lowercase()))
+            .collect();
+        
+        if filtered.is_empty() {
+            return Ok(0);
+        }
+        
+        println!(); // New line after input
+        
+        for (i, cmd) in filtered.iter().enumerate() {
+            let selected = i == self.selected_idx;
+            
+            if selected {
+                // Yellow indicator for selected
+                print!("\x1b[33m█\x1b[0m \x1b[36m/{:<18}\x1b[0m \x1b[33m{}\x1b[0m", cmd.name, cmd.description);
+            } else {
+                // Gray for unselected
+                print!("\x1b[90m█\x1b[0m \x1b[36m/{:<18}\x1b[0m \x1b[90m{}\x1b[0m", cmd.name, cmd.description);
+            }
+            println!();
+        }
+        
+        stdout.flush()?;
+        Ok(filtered.len() as u16)
+    }
+
+    fn render_footer(&self) {
+        let w = Self::term_width() as usize;
+        
+        // Thick bottom separator
+        println!("\x1b[90m{}\x1b[0m", "━".repeat(w));
+        
+        // Shortcuts
+        print!("\x1b[1mCtrl+C\x1b[0m Exit  \x1b[90m·\x1b[0m  \x1b[1mTab\x1b[0m Complete  \x1b[90m·\x1b[0m  \x1b[1m↑↓\x1b[0m Navigate");
+        
+        let _ = io::stdout().flush();
+    }
+
+    fn full_render(&mut self) -> io::Result<()> {
+        let mut stdout = stdout();
+        
+        // Get cursor position before we start
+        let (_, start_y) = cursor::position()?;
+        self.start_row = start_y;
+        
+        self.print_static_header();
+        self.render_input_line(&mut stdout)?;
+        let menu_lines = self.render_menu(&mut stdout)?;
+        
+        // Add spacing before footer if no menu
+        if menu_lines == 0 {
+            println!();
+        }
+        
+        self.render_footer();
+        println!();
+        
+        Ok(())
+    }
+
+    fn refresh_dynamic(&mut self) -> io::Result<()> {
+        let mut stdout = stdout();
+        
+        // Calculate how many lines to go back
+        let old_menu_lines = if self.show_menu {
+            let filter = if self.input.starts_with('/') { &self.input[1..] } else { "" };
+            self.commands.iter()
+                .filter(|c| filter.is_empty() || c.name.to_lowercase().starts_with(&filter.to_lowercase()))
+                .count() as u16
         } else {
-            3
+            0
         };
         
-        // Move up and clear
-        print!("\x1B[{}A", lines_to_clear + 3);
-        print!("\x1B[J"); // Clear from cursor to end
+        // Move cursor up to input line (input + menu + footer spacing + footer)
+        let lines_up = 1 + old_menu_lines + 2;
+        execute!(stdout, cursor::MoveUp(lines_up.max(3)))?;
         
-        self.draw_prompt_area();
-    }
-
-    fn get_filter(&self) -> String {
-        if self.input.starts_with('/') {
-            self.input[1..].to_string()
-        } else {
-            String::new()
+        // Clear from here to end of screen
+        execute!(stdout, terminal::Clear(ClearType::FromCursorDown))?;
+        
+        // Re-render dynamic parts
+        self.render_input_line(&mut stdout)?;
+        let menu_lines = self.render_menu(&mut stdout)?;
+        
+        if menu_lines == 0 {
+            println!();
         }
+        
+        self.render_footer();
+        println!();
+        
+        Ok(())
     }
 
-    fn get_filtered_commands(&self, filter: &str) -> Vec<&SlashCommand> {
+    fn filtered_commands(&self) -> Vec<&SlashCommand> {
+        let filter = if self.input.starts_with('/') { &self.input[1..] } else { "" };
         self.commands.iter()
             .filter(|c| filter.is_empty() || c.name.to_lowercase().starts_with(&filter.to_lowercase()))
             .collect()
     }
 
-    fn cleanup(&self) {
-        let _ = disable_raw_mode();
-        print!("\x1B[?25h"); // Show cursor
-        print!("\x1B[0m");
-        let _ = io::stdout().flush();
-    }
-
     pub fn run(&mut self) -> io::Result<Option<(String, String)>> {
-        // Print header (doesn't clear screen)
-        self.print_header();
-        self.draw_prompt_area();
+        // Initial render
+        self.full_render()?;
         
-        // Hide cursor and enable raw mode
-        print!("\x1B[?25l");
-        io::stdout().flush()?;
+        // Hide cursor
+        let mut stdout = stdout();
+        execute!(stdout, cursor::Hide)?;
         
-        if enable_raw_mode().is_err() {
-            self.cleanup();
-            return Ok(None);
-        }
-
+        // Enable raw mode
+        enable_raw_mode()?;
+        
         let result = self.event_loop();
-        self.cleanup();
-        println!(); // New line after exit
+        
+        // Cleanup
+        disable_raw_mode()?;
+        execute!(stdout, cursor::Show)?;
+        
         result
     }
 
     fn event_loop(&mut self) -> io::Result<Option<(String, String)>> {
         loop {
-            if event::poll(std::time::Duration::from_millis(100))? {
+            if event::poll(std::time::Duration::from_millis(50))? {
                 if let Event::Key(key) = event::read()? {
-                    // Only handle key press events (not release)
+                    // Only process key press, not release
                     if key.kind != KeyEventKind::Press {
                         continue;
                     }
                     
-                    match (key.code, key.modifiers) {
-                        // Ctrl+C - Exit
+                    let handled = match (key.code, key.modifiers) {
+                        // Exit
                         (KeyCode::Char('c'), m) if m.contains(KeyModifiers::CONTROL) => {
                             return Ok(None);
                         }
-                        // Escape - Close menu or exit
                         (KeyCode::Esc, _) => {
                             if self.show_menu {
-                                self.show_menu = false;
                                 self.input.clear();
-                                self.selected_command = 0;
-                                self.redraw();
+                                self.cursor_pos = 0;
+                                self.show_menu = false;
+                                self.selected_idx = 0;
+                                true
                             } else {
                                 return Ok(None);
                             }
                         }
-                        // Arrow Up
-                        (KeyCode::Up, _) => {
-                            if self.show_menu && self.selected_command > 0 {
-                                self.selected_command -= 1;
-                                self.redraw();
+                        
+                        // Navigation
+                        (KeyCode::Up, _) if self.show_menu => {
+                            if self.selected_idx > 0 {
+                                self.selected_idx -= 1;
                             }
+                            true
                         }
-                        // Arrow Down  
-                        (KeyCode::Down, _) => {
-                            if self.show_menu {
-                                let filter = self.get_filter();
-                                let max = self.get_filtered_commands(&filter).len().saturating_sub(1);
-                                if self.selected_command < max {
-                                    self.selected_command += 1;
-                                    self.redraw();
-                                }
+                        (KeyCode::Down, _) if self.show_menu => {
+                            let max = self.filtered_commands().len().saturating_sub(1);
+                            if self.selected_idx < max {
+                                self.selected_idx += 1;
                             }
+                            true
                         }
-                        // Enter - Select or submit
+                        
+                        // Selection
                         (KeyCode::Enter, _) => {
                             if self.show_menu {
-                                let filter = self.get_filter();
-                                let filtered = self.get_filtered_commands(&filter);
-                                if let Some(cmd) = filtered.get(self.selected_command) {
-                                    if cmd.name == "exit" {
+                                let cmds = self.filtered_commands();
+                                if let Some(cmd) = cmds.get(self.selected_idx) {
+                                    let name = cmd.name.to_string();
+                                    if name == "exit" {
                                         return Ok(None);
                                     }
-                                    if cmd.name == "clear" {
-                                        // Clear and redraw everything
-                                        print!("\x1B[2J\x1B[H");
+                                    if name == "clear" {
+                                        // Clear screen and re-render
+                                        execute!(stdout(), terminal::Clear(ClearType::All), cursor::MoveTo(0, 0))?;
                                         self.input.clear();
+                                        self.cursor_pos = 0;
                                         self.show_menu = false;
-                                        self.selected_command = 0;
-                                        self.print_header();
-                                        self.draw_prompt_area();
+                                        self.selected_idx = 0;
+                                        disable_raw_mode()?;
+                                        self.full_render()?;
+                                        enable_raw_mode()?;
                                         continue;
                                     }
-                                    return Ok(Some((cmd.name.to_string(), String::new())));
+                                    return Ok(Some((name, String::new())));
                                 }
                             } else if !self.input.is_empty() {
                                 let input = self.input.clone();
                                 if input.starts_with('/') {
-                                    let cmd = &input[1..];
-                                    return Ok(Some((cmd.to_string(), String::new())));
+                                    return Ok(Some((input[1..].to_string(), String::new())));
                                 } else {
                                     return Ok(Some(("query".to_string(), input)));
                                 }
                             }
+                            false
                         }
-                        // Tab - Autocomplete
-                        (KeyCode::Tab, _) => {
-                            if self.show_menu {
-                                let filter = self.get_filter();
-                                let filtered = self.get_filtered_commands(&filter);
-                                if let Some(cmd) = filtered.get(self.selected_command) {
-                                    self.input = format!("/{}", cmd.name);
-                                    self.show_menu = false;
-                                    self.redraw();
-                                }
-                            }
-                        }
-                        // Backspace
-                        (KeyCode::Backspace, _) => {
-                            if !self.input.is_empty() {
-                                self.input.pop();
-                                self.show_menu = self.input.starts_with('/');
-                                if !self.show_menu {
-                                    self.selected_command = 0;
-                                }
-                                self.redraw();
-                            }
-                        }
-                        // Regular character
-                        (KeyCode::Char(c), m) if !m.contains(KeyModifiers::CONTROL) => {
-                            self.input.push(c);
-                            
-                            if self.input.starts_with('/') {
-                                self.show_menu = true;
-                                self.selected_command = 0;
-                            } else {
+                        
+                        // Tab autocomplete
+                        (KeyCode::Tab, _) if self.show_menu => {
+                            let cmds = self.filtered_commands();
+                            if let Some(cmd) = cmds.get(self.selected_idx) {
+                                self.input = format!("/{}", cmd.name);
+                                self.cursor_pos = self.input.len();
                                 self.show_menu = false;
+                                self.selected_idx = 0;
                             }
-                            
-                            self.redraw();
+                            true
                         }
-                        _ => {}
+                        
+                        // Text editing
+                        (KeyCode::Backspace, _) => {
+                            if self.cursor_pos > 0 {
+                                self.cursor_pos -= 1;
+                                self.input.remove(self.cursor_pos);
+                                self.show_menu = self.input.starts_with('/');
+                                self.selected_idx = 0;
+                            }
+                            true
+                        }
+                        (KeyCode::Left, _) => {
+                            if self.cursor_pos > 0 {
+                                self.cursor_pos -= 1;
+                            }
+                            true
+                        }
+                        (KeyCode::Right, _) => {
+                            if self.cursor_pos < self.input.len() {
+                                self.cursor_pos += 1;
+                            }
+                            true
+                        }
+                        (KeyCode::Home, _) => {
+                            self.cursor_pos = 0;
+                            true
+                        }
+                        (KeyCode::End, _) => {
+                            self.cursor_pos = self.input.len();
+                            true
+                        }
+                        
+                        // Character input
+                        (KeyCode::Char(c), m) if !m.contains(KeyModifiers::CONTROL) => {
+                            self.input.insert(self.cursor_pos, c);
+                            self.cursor_pos += 1;
+                            
+                            self.show_menu = self.input.starts_with('/');
+                            self.selected_idx = 0;
+                            true
+                        }
+                        
+                        _ => false,
+                    };
+                    
+                    if handled {
+                        // Temporarily disable raw mode for clean output
+                        disable_raw_mode()?;
+                        self.refresh_dynamic()?;
+                        enable_raw_mode()?;
                     }
                 }
             }
