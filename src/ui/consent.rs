@@ -28,27 +28,38 @@ impl ConsentPrompt {
         }
     }
 
+    fn print_logo(&self) {
+        println!();
+        println!("\x1B[1;37m        █████╗ ███████╗████████╗██╗  ██╗██████╗ \x1B[0m");
+        println!("\x1B[1;37m       ██╔══██╗██╔════╝╚══██╔══╝██║  ██║██╔══██╗\x1B[0m");
+        println!("\x1B[1;37m       ███████║█████╗     ██║   ███████║██████╔╝\x1B[0m");
+        println!("\x1B[1;37m       ██╔══██║██╔══╝     ██║   ██╔══██║██╔══██╗\x1B[0m");
+        println!("\x1B[1;37m       ██║  ██║███████╗   ██║   ██║  ██║██║  ██║\x1B[0m");
+        println!("\x1B[1;37m       ╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝\x1B[0m");
+        println!();
+        println!("\x1B[2m       Terminal Intelligence That Learns\x1B[0m");
+        println!();
+    }
+
     fn draw(&self) {
         // Clear screen
         print!("\x1B[2J\x1B[H");
         
+        self.print_logo();
+        
+        println!("  \x1B[1mSetup\x1B[0m");
         println!();
-        println!("  \x1B[1;36m┌─────────────────────────────────────────┐\x1B[0m");
-        println!("  \x1B[1;36m│\x1B[0m  \x1B[1mAethr Setup\x1B[0m                          \x1B[1;36m│\x1B[0m");
-        println!("  \x1B[1;36m└─────────────────────────────────────────┘\x1B[0m");
-        println!();
-        println!("  Aethr can automatically save commands to improve");
+        println!("  Aethr can automatically save your commands to improve");
         println!("  recall and fix suggestions.");
         println!();
-        println!("  Your data stays on your machine unless you choose");
-        println!("  to share with the community.");
+        println!("  Your data stays on your machine unless you choose to share.");
         println!();
         println!("  \x1B[90mSelect an option:\x1B[0m");
         println!();
         
         for (idx, (label, desc, _)) in self.options.iter().enumerate() {
             if idx == self.selected {
-                println!("  \x1B[46;30m ● {:<30} \x1B[0m", label);
+                println!("  \x1B[46;30m ● {:<28} \x1B[0m", label);
                 println!("    \x1B[36m{}\x1B[0m", desc);
             } else {
                 println!("  \x1B[90m ○\x1B[0m {}", label);
@@ -67,7 +78,6 @@ impl ConsentPrompt {
         let _ = disable_raw_mode();
         print!("\x1B[?25h");
         print!("\x1B[0m");
-        println!();
         let _ = io::stdout().flush();
     }
 
