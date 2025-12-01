@@ -1,11 +1,8 @@
 use crossterm::{
-    cursor,
     event::{self, Event, KeyCode, KeyModifiers},
-    execute,
-    terminal::{Clear, ClearType, disable_raw_mode, enable_raw_mode},
+    terminal::{disable_raw_mode, enable_raw_mode},
 };
 use std::io::{self, Write};
-use colored::*;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AutoSaveChoice {
@@ -24,95 +21,110 @@ impl ConsentPrompt {
         Self {
             selected: 0,
             options: vec![
-                ("Enable auto-save (local only)", "Commands saved privately on your machine", AutoSaveChoice::LocalOnly),
-                ("Enable auto-save + share to Community Brain", "Help improve Aethr for everyone", AutoSaveChoice::ShareToCommunity),
-                ("Disable auto-save", "You can import history manually later", AutoSaveChoice::Disabled),
+                ("Auto-save locally", "Commands saved on your machine only", AutoSaveChoice::LocalOnly),
+                ("Auto-save + Community", "Help improve Aethr for everyone", AutoSaveChoice::ShareToCommunity),
+                ("Disable auto-save", "Import history manually later", AutoSaveChoice::Disabled),
             ],
         }
     }
 
-    fn draw(&self) -> io::Result<()> {
-        // Clear and draw options
-        for (idx, (label, description, _)) in self.options.iter().enumerate() {
-            execute!(io::stdout(), cursor::MoveToColumn(0), Clear(ClearType::CurrentLine))?;
-            
+    fn draw(&self) {
+        // Clear screen
+        print!("\x1B[2J\x1B[H");
+        
+        println!();
+        println!("  \x1B[1;36m┌─────────────────────────────────────────┐\x1B[0m");
+        println!("  \x1B[1;36m│\x1B[0m  \x1B[1mAethr Setup\x1B[0m                          \x1B[1;36m│\x1B[0m");
+        println!("  \x1B[1;36m└─────────────────────────────────────────┘\x1B[0m");
+        println!();
+        println!("  Aethr can automatically save commands to improve");
+        println!("  recall and fix suggestions.");
+        println!();
+        println!("  Your data stays on your machine unless you choose");
+        println!("  to share with the community.");
+        println!();
+        println!("  \x1B[90mSelect an option:\x1B[0m");
+        println!();
+        
+        for (idx, (label, desc, _)) in self.options.iter().enumerate() {
             if idx == self.selected {
-                println!("   {} {}", ">".cyan(), label.cyan().bold());
-                println!("     {}", description.dimmed());
+                println!("  \x1B[46;30m ● {:<30} \x1B[0m", label);
+                println!("    \x1B[36m{}\x1B[0m", desc);
             } else {
-                println!("     {}", label);
-                println!("     {}", description.dimmed());
+                println!("  \x1B[90m ○\x1B[0m {}", label);
+                println!("    \x1B[90m{}\x1B[0m", desc);
             }
+            println!();
         }
         
-        io::stdout().flush()?;
-        Ok(())
+        println!();
+        println!("  \x1B[90m↑↓ Navigate  Enter Select\x1B[0m");
+        
+        io::stdout().flush().unwrap();
     }
 
-    fn move_up(&self, lines: usize) -> io::Result<()> {
-        for _ in 0..lines {
-            execute!(io::stdout(), cursor::MoveUp(1))?;
-        }
-        Ok(())
+    fn cleanup(&self) {
+        let _ = disable_raw_mode();
+        print!("\x1B[?25h");
+        print!("\x1B[0m");
+        println!();
+        let _ = io::stdout().flush();
     }
 
     pub fn run(&mut self) -> io::Result<AutoSaveChoice> {
-        println!();
-        println!(" {}", "Aethr Setup".bold());
-        println!();
-        println!(" Aethr can automatically save your commands to improve recall and fix suggestions.");
-        println!(" Your data stays on your machine unless you choose to share.");
-        println!();
+        self.draw();
         
-        // Initial draw
-        self.draw()?;
-        
-        println!();
-        println!(" {}", "Use arrow keys to select, Enter to confirm".dimmed());
-        
-        // Move cursor back up to options area
-        self.move_up(self.options.len() * 2 + 2)?;
-        
-        enable_raw_mode()?;
+        if enable_raw_mode().is_err() {
+            self.cleanup();
+            return Ok(AutoSaveChoice::Disabled);
+        }
 
         loop {
-            if event::poll(std::time::Duration::from_millis(100))? {
-                if let Event::Key(key) = event::read()? {
-                    match key.code {
-                        KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                            disable_raw_mode()?;
-                            println!();
-                            return Ok(AutoSaveChoice::Disabled);
-                        }
-                        KeyCode::Up | KeyCode::Char('k') => {
-                            if self.selected > 0 {
-                                self.selected -= 1;
-                                self.draw()?;
-                                self.move_up(self.options.len() * 2)?;
+            if event::poll(std::time::Duration::from_millis(50))? {
+                match event::read()? {
+                    Event::Key(key) => {
+                        match (key.code, key.modifiers) {
+                            (KeyCode::Char('c'), m) if m.contains(KeyModifiers::CONTROL) => {
+                                self.cleanup();
+                                return Ok(AutoSaveChoice::Disabled);
                             }
-                        }
-                        KeyCode::Down | KeyCode::Char('j') => {
-                            if self.selected < self.options.len() - 1 {
-                                self.selected += 1;
-                                self.draw()?;
-                                self.move_up(self.options.len() * 2)?;
+                            (KeyCode::Esc, _) => {
+                                self.cleanup();
+                                return Ok(AutoSaveChoice::Disabled);
                             }
-                        }
-                        KeyCode::Enter => {
-                            disable_raw_mode()?;
-                            // Move past the options
-                            for _ in 0..self.options.len() * 2 + 2 {
-                                println!();
+                            (KeyCode::Up, _) | (KeyCode::Char('k'), _) => {
+                                if self.selected > 0 {
+                                    self.selected -= 1;
+                                    self.draw();
+                                }
                             }
-                            return Ok(self.options[self.selected].2);
+                            (KeyCode::Down, _) | (KeyCode::Char('j'), _) => {
+                                if self.selected < self.options.len() - 1 {
+                                    self.selected += 1;
+                                    self.draw();
+                                }
+                            }
+                            (KeyCode::Enter, _) => {
+                                let choice = self.options[self.selected].2;
+                                self.cleanup();
+                                return Ok(choice);
+                            }
+                            (KeyCode::Char('1'), _) => {
+                                self.selected = 0;
+                                self.draw();
+                            }
+                            (KeyCode::Char('2'), _) => {
+                                self.selected = 1;
+                                self.draw();
+                            }
+                            (KeyCode::Char('3'), _) => {
+                                self.selected = 2;
+                                self.draw();
+                            }
+                            _ => {}
                         }
-                        KeyCode::Esc => {
-                            disable_raw_mode()?;
-                            println!();
-                            return Ok(AutoSaveChoice::Disabled);
-                        }
-                        _ => {}
                     }
+                    _ => {}
                 }
             }
         }
