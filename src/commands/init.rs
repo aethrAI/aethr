@@ -4,19 +4,6 @@ use crate::utils::config::{self, AethrConfig};
 use crate::ui::{show_consent, AutoSaveChoice};
 use std::io::{self, Write};
 
-fn print_logo() {
-    println!();
-    println!("\x1B[1;37m        █████╗ ███████╗████████╗██╗  ██╗██████╗ \x1B[0m");
-    println!("\x1B[1;37m       ██╔══██╗██╔════╝╚══██╔══╝██║  ██║██╔══██╗\x1B[0m");
-    println!("\x1B[1;37m       ███████║█████╗     ██║   ███████║██████╔╝\x1B[0m");
-    println!("\x1B[1;37m       ██╔══██║██╔══╝     ██║   ██╔══██║██╔══██╗\x1B[0m");
-    println!("\x1B[1;37m       ██║  ██║███████╗   ██║   ██║  ██║██║  ██║\x1B[0m");
-    println!("\x1B[1;37m       ╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝\x1B[0m");
-    println!();
-    println!("\x1B[2m       Terminal Intelligence That Learns\x1B[0m");
-    println!();
-}
-
 pub fn run() -> Result<()> {
     let config_dir = config::config_dir();
     let config_file = config_dir.join("config.json");
@@ -43,10 +30,6 @@ pub fn run() -> Result<()> {
     if is_first_run {
         match show_consent() {
             Ok(choice) => {
-                // Clear screen and show logo
-                print!("\x1B[2J\x1B[H");
-                print_logo();
-                
                 let config = match choice {
                     AutoSaveChoice::LocalOnly => {
                         println!("  \x1B[32m✓\x1B[0m Auto-save enabled \x1B[90m(local only)\x1B[0m");
@@ -84,9 +67,7 @@ pub fn run() -> Result<()> {
         }
     } else {
         // Not first run, just show status
-        print!("\x1B[2J\x1B[H");
-        print_logo();
-        println!("  \x1B[32m✓\x1B[0m Already initialized");
+        println!("Already initialized");
     }
 
     // Show next steps
