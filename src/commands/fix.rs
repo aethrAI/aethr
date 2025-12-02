@@ -4,12 +4,33 @@ use crate::db::community_brain::CommunityBrain;
 use crate::context::detector::detect_project_context;
 use crate::llm::ClaudeClient;
 use crate::utils::config;
-use colored::*;
 use std::io::{self, Write};
+
+fn term_width() -> usize {
+    crossterm::terminal::size().map(|(w, _)| w as usize).unwrap_or(80)
+}
+
+fn separator() {
+    let w = term_width();
+    println!("\x1b[90m{}\x1b[0m", "━".repeat(w));
+}
+
+fn header(title: &str) {
+    separator();
+    println!("\x1b[1;33m{}\x1b[0m", title);
+    separator();
+}
 
 pub fn run(error: &str) -> Result<()> {
     println!();
-    println!(" {} \"{}\"", "Analyzing:".dimmed(), error.chars().take(60).collect::<String>());
+    
+    // Analyzing header
+    println!("\x1b[90m🔍 Analyzing error...\x1b[0m");
+    println!();
+    
+    // Show truncated error
+    let error_preview: String = error.chars().take(80).collect();
+    println!("\x1b[90m\"{}\"\x1b[0m", error_preview);
     println!();
 
     // Detect current context
@@ -19,25 +40,26 @@ pub fn run(error: &str) -> Result<()> {
     } else {
         Some(context.tags.join(","))
     };
+    
+    if !context.tags.is_empty() {
+        println!("\x1b[90mContext: {}\x1b[0m", context.tags.join(", "));
+        println!();
+    }
 
     // Layer 1: Deterministic rules (fastest, highest confidence)
     if let Ok(Some((cmd, conf, expl))) = apply_rules_from_path("data/error_rules.yaml", error) {
-        println!(" {} Rule match", "Layer 1".cyan().bold());
-        println!();
-        show_fix(&cmd, Some(conf * 100.0), None, &expl);
+        show_problem(error);
+        show_fix_with_source(&cmd, Some(conf * 100.0), 0, &expl, "Rule Engine", None);
         prompt_feedback(&cmd, error, context_str.as_deref())?;
         return Ok(());
     }
 
-    // Layer 2: Local history (your past solutions)
-    // TODO: Search local command history for similar error patterns
-
-    // Layer 3: Community Brain (shared knowledge)
+    // Layer 2: Community Brain (shared knowledge from real devs)
     let db_path = config::get_db_path();
     if db_path.exists() {
         let brain = CommunityBrain::new(&db_path)?;
         
-        // Extract meaningful tokens from error (skip common words)
+        // Extract meaningful tokens from error
         let stopwords = ["the", "and", "for", "not", "was", "error", "found", "command", "no", "such", "file", "cannot"];
         let tokens: Vec<&str> = error
             .split(|c: char| !c.is_alphanumeric() && c != '-' && c != '_')
@@ -52,96 +74,171 @@ pub fn run(error: &str) -> Result<()> {
             let results = brain.search_with_scores(&query, context_tags.as_deref(), 3)?;
             
             if !results.is_empty() {
-                // Show intelligent message based on result count
-                let error_type = tokens.first().unwrap_or(&"this");
-                println!(" Found {} related {} from developers who resolved {} issues:",
-                    results.len().to_string().cyan(),
-                    if results.len() == 1 { "fix" } else { "fixes" },
-                    error_type);
-                println!();
+                show_problem(error);
                 
-                for (i, r) in results.iter().enumerate() {
-                    let uses = r.success_count + r.fail_count;
-                    let rate_str = if uses > 0 {
-                        format!("{:.0}% success rate ({} uses)", r.success_rate, uses)
-                    } else {
-                        "new suggestion".to_string()
-                    };
-                    
-                    println!("  {} {}", format!("{}.", i + 1).dimmed(), r.command.cyan());
-                    println!("    {}", rate_str.dimmed());
+                // Primary fix (highest scored)
+                let primary = &results[0];
+                let uses = (primary.success_count + primary.fail_count) as i32;
+                let dev_text = if uses == 1 { "dev" } else { "devs" };
+                
+                show_fix_with_source(
+                    &primary.command,
+                    Some(primary.success_rate),
+                    uses,
+                    "",
+                    "Community",
+                    Some(format!("Used by {} {}", uses, dev_text))
+                );
+                
+                // Alternative fixes
+                if results.len() > 1 {
                     println!();
+                    println!("\x1b[90m💡 Alternative solutions:\x1b[0m");
+                    println!();
+                    
+                    for (i, r) in results.iter().skip(1).enumerate() {
+                        let alt_uses = (r.success_count + r.fail_count) as i32;
+                        println!("  \x1b[90m{}.\x1b[0m \x1b[36m{}\x1b[0m", i + 2, r.command);
+                        println!("     \x1b[90m{:.0}% success · {} uses\x1b[0m", r.success_rate, alt_uses);
+                        println!();
+                    }
                 }
                 
-                // If only one result or first has high score, suggest it
-                if results.len() == 1 || results[0].success_rate >= 70.0 {
-                    prompt_feedback(&results[0].command, error, context_str.as_deref())?;
-                }
-                
+                prompt_feedback(&primary.command, error, context_str.as_deref())?;
                 return Ok(());
             }
         }
     }
 
-    // Layer 4: LLM fallback (Claude)
+    // Layer 3: LLM fallback (Claude)
     if let Some(client) = ClaudeClient::from_env() {
-        println!(" {} Asking Claude...", "Layer 3".cyan().bold());
+        println!("\x1b[90m⚡ Consulting AI...\x1b[0m");
         println!();
         
         match client.get_fix(error, context_str.as_deref()) {
             Ok(suggestion) => {
                 if !suggestion.command.is_empty() {
-                    show_fix(&suggestion.command, None, None, &suggestion.explanation);
-                    println!(" {} LLM suggestion", "Source:".dimmed());
+                    show_problem(error);
+                    show_fix_with_source(
+                        &suggestion.command,
+                        None,
+                        0,
+                        &suggestion.explanation,
+                        "AI",
+                        Some("Claude Sonnet 4".to_string())
+                    );
+                    
                     println!();
+                    println!("\x1b[90m⚠️  AI-generated solution (not community-verified)\x1b[0m");
+                    println!();
+                    
                     prompt_feedback(&suggestion.command, error, context_str.as_deref())?;
                     return Ok(());
                 }
             }
             Err(e) => {
-                println!(" {} LLM error: {}", "!".yellow(), e.to_string().chars().take(50).collect::<String>());
+                println!("\x1b[33m⚠️  AI unavailable: {}\x1b[0m", e.to_string().chars().take(50).collect::<String>());
                 println!();
             }
         }
     }
 
     // No solution found
-    println!(" {} No fix found", "x".red());
+    header("NO FIX FOUND");
     println!();
-    println!(" Searched: rules, Community Brain{}", 
-        if ClaudeClient::from_env().is_some() { ", Claude" } else { "" });
+    println!("We couldn't find a solution in:");
+    println!("  • Rule engine");
+    println!("  • Community Brain");
+    if ClaudeClient::from_env().is_some() {
+        println!("  • AI (Claude)");
+    }
     println!();
+    
     if ClaudeClient::from_env().is_none() {
-        println!(" {} Set ANTHROPIC_API_KEY for LLM suggestions", "Tip:".dimmed());
+        println!("\x1b[90m💡 Tip: Set ANTHROPIC_API_KEY for AI-powered suggestions\x1b[0m");
         println!();
     }
+    
+    println!("Try rephrasing or share this error with the community:");
+    println!("  \x1b[36m$ aethr report \"your error\"\x1b[0m");
+    println!();
     
     Ok(())
 }
 
-/// Display a fix suggestion
-fn show_fix(cmd: &str, confidence: Option<f32>, success_rate: Option<f32>, explanation: &str) {
-    println!(" {}", "Suggested fix:".bold());
-    println!();
-    println!("   {}", cmd.cyan());
+/// Display "THE PROBLEM" section
+fn show_problem(error: &str) {
+    header("THE PROBLEM");
     println!();
     
-    if let Some(conf) = confidence {
-        println!(" {} {:.0}%", "Confidence:".dimmed(), conf);
-    }
-    if let Some(rate) = success_rate {
-        println!(" {} {:.0}%", "Success rate:".dimmed(), rate);
-    }
-    if !explanation.is_empty() {
-        println!();
-        println!(" {}", explanation.dimmed());
+    // Show error in a readable format
+    let lines: Vec<&str> = error.lines().take(5).collect();
+    for line in lines {
+        println!("  \x1b[31m{}\x1b[0m", line.chars().take(100).collect::<String>());
     }
     println!();
 }
 
+/// Display "THE FIX" section with source attribution
+fn show_fix_with_source(
+    cmd: &str,
+    confidence: Option<f32>,
+    uses: i32,
+    explanation: &str,
+    source: &str,
+    source_detail: Option<String>
+) {
+    header("THE FIX");
+    println!();
+    
+    // Source badge
+    let badge = match source {
+        "Community" => "\x1b[32m✓ COMMUNITY VERIFIED\x1b[0m",
+        "Rule Engine" => "\x1b[36m⚡ RULE MATCH\x1b[0m",
+        "AI" => "\x1b[33m🤖 AI GENERATED\x1b[0m",
+        _ => source,
+    };
+    println!("  {}", badge);
+    
+    if let Some(detail) = source_detail {
+        println!("  \x1b[90m{}\x1b[0m", detail);
+    }
+    println!();
+    
+    // Command
+    println!("  \x1b[1;36m{}\x1b[0m", cmd);
+    println!();
+    
+    // Confidence/Success metrics
+    if let Some(conf) = confidence {
+        if uses > 0 {
+            let bar_len = 20;
+            let filled = ((conf / 100.0) * bar_len as f32) as usize;
+            let empty = bar_len - filled;
+            let bar = format!("{}{}", "█".repeat(filled), "░".repeat(empty));
+            
+            let color = if conf >= 80.0 { "\x1b[32m" } // Green
+                else if conf >= 50.0 { "\x1b[33m" } // Yellow
+                else { "\x1b[31m" }; // Red
+            
+            println!("  {}🎯 {:.0}% Success Rate{} {}", color, conf, "\x1b[0m", format!("\x1b[90m{}\x1b[0m", bar));
+        } else {
+            println!("  \x1b[90m🎯 {:.0}% Confidence\x1b[0m", conf);
+        }
+        println!();
+    }
+    
+    // Explanation
+    if !explanation.is_empty() {
+        println!("  \x1b[90m{}\x1b[0m", explanation);
+        println!();
+    }
+}
+
 /// Prompt user for feedback and log to Community Brain
 fn prompt_feedback(command: &str, error: &str, context_tags: Option<&str>) -> Result<()> {
-    print!(" Did this fix work? {} ", "[Y/n]".dimmed());
+    separator();
+    print!("\x1b[1mDid this fix work?\x1b[0m \x1b[90m[Y/n]\x1b[0m ");
     io::stdout().flush()?;
     
     let mut input = String::new();
@@ -152,7 +249,7 @@ fn prompt_feedback(command: &str, error: &str, context_tags: Option<&str>) -> Re
     if db_path.exists() {
         let brain = CommunityBrain::new(&db_path)?;
         
-        // Normalize error pattern (first 100 chars, simplified)
+        // Normalize error pattern
         let error_pattern: String = error
             .chars()
             .take(100)
@@ -164,10 +261,14 @@ fn prompt_feedback(command: &str, error: &str, context_tags: Option<&str>) -> Re
         
         if input.is_empty() || input == "y" || input == "yes" {
             brain.log_success(command, &error_pattern, context_tags)?;
-            println!(" {} Logged to Community Brain", "+".green());
+            println!();
+            println!("\x1b[32m✓ Thanks! Added to Community Brain\x1b[0m");
+            println!("\x1b[90m  Your feedback helps other developers\x1b[0m");
         } else if input == "n" || input == "no" {
             brain.log_failure(command, &error_pattern)?;
-            println!(" {} Feedback recorded", "-".yellow());
+            println!();
+            println!("\x1b[33m○ Feedback recorded\x1b[0m");
+            println!("\x1b[90m  We'll improve suggestions based on this\x1b[0m");
         }
     }
     
