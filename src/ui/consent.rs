@@ -1,5 +1,5 @@
 use crossterm::{
-    event::{self, Event, KeyCode, KeyModifiers},
+    event::{self, Event, KeyCode, KeyEventKind, KeyModifiers},
     terminal::{disable_raw_mode, enable_raw_mode},
 };
 use std::io::{self, Write};
@@ -110,7 +110,7 @@ impl ConsentPrompt {
         loop {
             if event::poll(std::time::Duration::from_millis(50))? {
                 match event::read()? {
-                    Event::Key(key) => {
+                    Event::Key(key) if key.kind == KeyEventKind::Press => {
                         match (key.code, key.modifiers) {
                             (KeyCode::Char('c'), m) if m.contains(KeyModifiers::CONTROL) => {
                                 self.cleanup();
