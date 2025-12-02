@@ -56,57 +56,64 @@ pub fn run(error: &str) -> Result<()> {
 
     // Layer 2: Community Brain (shared knowledge from real devs)
     let db_path = config::get_db_path();
-    if db_path.exists() {
-        let brain = CommunityBrain::new(&db_path)?;
+    
+    // Create parent directory if needed
+    if let Some(parent) = db_path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    
+    let brain = CommunityBrain::new(&db_path)?;
+    
+    // Seed with common fixes if empty (for new users)
+    brain.seed_if_empty()?;
+    
+    // Extract meaningful tokens from error
+    let stopwords = ["the", "and", "for", "not", "was", "error", "found", "command", "no", "such", "file", "cannot"];
+    let tokens: Vec<&str> = error
+        .split(|c: char| !c.is_alphanumeric() && c != '-' && c != '_')
+        .filter(|t| t.len() > 2)
+        .filter(|t| !stopwords.contains(&t.to_lowercase().as_str()))
+        .take(5)
+        .collect();
+    
+    let query = tokens.join(" ");
+    if !query.is_empty() {
+        let context_tags: Option<Vec<&str>> = context_str.as_ref().map(|s| s.split(',').collect());
+        let results = brain.search_with_scores(&query, context_tags.as_deref(), 3)?;
         
-        // Extract meaningful tokens from error
-        let stopwords = ["the", "and", "for", "not", "was", "error", "found", "command", "no", "such", "file", "cannot"];
-        let tokens: Vec<&str> = error
-            .split(|c: char| !c.is_alphanumeric() && c != '-' && c != '_')
-            .filter(|t| t.len() > 2)
-            .filter(|t| !stopwords.contains(&t.to_lowercase().as_str()))
-            .take(5)
-            .collect();
-        
-        let query = tokens.join(" ");
-        if !query.is_empty() {
-            let context_tags: Option<Vec<&str>> = context_str.as_ref().map(|s| s.split(',').collect());
-            let results = brain.search_with_scores(&query, context_tags.as_deref(), 3)?;
+        if !results.is_empty() {
+            show_problem(error);
             
-            if !results.is_empty() {
-                show_problem(error);
+            // Primary fix (highest scored)
+            let primary = &results[0];
+            let uses = (primary.success_count + primary.fail_count) as i32;
+            let dev_text = if uses == 1 { "dev" } else { "devs" };
+            
+            show_fix_with_source(
+                &primary.command,
+                Some(primary.success_rate),
+                uses,
+                "",
+                "Community",
+                Some(format!("Used by {} {}", uses, dev_text))
+            );
+            
+            // Alternative fixes
+            if results.len() > 1 {
+                println!();
+                println!("\x1b[90m💡 Alternative solutions:\x1b[0m");
+                println!();
                 
-                // Primary fix (highest scored)
-                let primary = &results[0];
-                let uses = (primary.success_count + primary.fail_count) as i32;
-                let dev_text = if uses == 1 { "dev" } else { "devs" };
-                
-                show_fix_with_source(
-                    &primary.command,
-                    Some(primary.success_rate),
-                    uses,
-                    "",
-                    "Community",
-                    Some(format!("Used by {} {}", uses, dev_text))
-                );
-                
-                // Alternative fixes
-                if results.len() > 1 {
+                for (i, r) in results.iter().skip(1).enumerate() {
+                    let alt_uses = (r.success_count + r.fail_count) as i32;
+                    println!("  \x1b[90m{}.\x1b[0m \x1b[36m{}\x1b[0m", i + 2, r.command);
+                    println!("     \x1b[90m{:.0}% success · {} uses\x1b[0m", r.success_rate, alt_uses);
                     println!();
-                    println!("\x1b[90m💡 Alternative solutions:\x1b[0m");
-                    println!();
-                    
-                    for (i, r) in results.iter().skip(1).enumerate() {
-                        let alt_uses = (r.success_count + r.fail_count) as i32;
-                        println!("  \x1b[90m{}.\x1b[0m \x1b[36m{}\x1b[0m", i + 2, r.command);
-                        println!("     \x1b[90m{:.0}% success · {} uses\x1b[0m", r.success_rate, alt_uses);
-                        println!();
-                    }
                 }
-                
-                prompt_feedback(&primary.command, error, context_str.as_deref())?;
-                return Ok(());
             }
+            
+            prompt_feedback(&primary.command, error, context_str.as_deref())?;
+            return Ok(());
         }
     }
 

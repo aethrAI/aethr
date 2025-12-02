@@ -238,4 +238,89 @@ impl CommunityBrain {
         )?;
         Ok(count)
     }
+
+    /// Seed the Community Brain with common error fixes
+    /// This provides a starting knowledge base for new users
+    pub fn seed_if_empty(&self) -> Result<()> {
+        let count = self.count()?;
+        if count > 0 {
+            return Ok(()); // Already has data
+        }
+
+        // Common error fixes from the developer community
+        let seed_data = vec![
+            // Node.js / npm errors
+            ("npm install", "npm ERR! code ENOENT", "nodejs,javascript", 50, 5),
+            ("npm install", "module not found", "nodejs,javascript", 45, 4),
+            ("npm cache clean --force && npm install", "npm ERR! code EINTEGRITY", "nodejs,javascript", 38, 3),
+            ("rm -rf node_modules && npm install", "npm ERR! peer dep missing", "nodejs,javascript", 42, 6),
+            ("npm audit fix", "npm WARN deprecated", "nodejs,javascript", 30, 2),
+            ("npm install --legacy-peer-deps", "ERESOLVE unable to resolve dependency tree", "nodejs,javascript", 55, 8),
+            ("npx create-react-app . --template typescript", "create-react-app command not found", "nodejs,react", 25, 2),
+            
+            // Python errors
+            ("pip install -r requirements.txt", "ModuleNotFoundError: No module named", "python", 60, 5),
+            ("pip install numpy", "no module named numpy", "python", 35, 3),
+            ("python -m venv venv && source venv/bin/activate", "externally-managed-environment", "python", 28, 2),
+            ("pip install --upgrade pip", "pip is configured with locations that require TLS", "python", 22, 1),
+            ("pip3 install", "command not found: pip", "python", 40, 4),
+            
+            // Git errors
+            ("git config --global http.sslVerify false", "SSL certificate problem", "git", 30, 5),
+            ("git pull --rebase origin main", "Your local changes would be overwritten", "git", 35, 4),
+            ("git stash && git pull && git stash pop", "Please commit your changes or stash them", "git", 45, 3),
+            ("git remote set-url origin git@github.com:user/repo.git", "could not resolve host: github.com", "git", 25, 2),
+            ("git checkout -b main && git branch -D master", "fatal: 'master' is not a git repository", "git", 20, 2),
+            ("git config --global init.defaultBranch main", "warning: the 'master' branch", "git", 18, 1),
+            
+            // Rust / Cargo errors
+            ("cargo clean && cargo build", "could not compile", "rust", 40, 5),
+            ("cargo update", "failed to select a version", "rust", 35, 3),
+            ("rustup update", "error: linker 'cc' not found", "rust", 28, 2),
+            ("cargo build --release", "memory allocation failed", "rust", 22, 4),
+            
+            // Docker errors
+            ("docker system prune -a", "no space left on device", "docker", 50, 4),
+            ("docker-compose down && docker-compose up -d", "port is already allocated", "docker", 45, 5),
+            ("sudo systemctl start docker", "Cannot connect to the Docker daemon", "docker", 55, 3),
+            ("docker pull", "TLS handshake timeout", "docker", 25, 3),
+            
+            // Permission errors (Linux/macOS)
+            ("sudo chown -R $USER:$USER .", "EACCES: permission denied", "linux,macos", 60, 8),
+            ("chmod +x", "Permission denied", "linux,macos", 55, 5),
+            ("sudo", "Operation not permitted", "linux,macos", 50, 6),
+            
+            // Database errors
+            ("sudo systemctl start postgresql", "connection refused", "postgresql", 35, 3),
+            ("mysql -u root -p", "Access denied for user 'root'", "mysql", 30, 4),
+            ("redis-server", "Address already in use", "redis", 28, 2),
+            
+            // Build tool errors
+            ("make clean && make", "make: *** No rule to make target", "c,cpp", 32, 4),
+            ("cmake -B build && cmake --build build", "CMake Error", "cmake", 28, 3),
+            
+            // Network/CORS errors
+            ("curl -k", "SSL certificate verify failed", "api,http", 35, 4),
+            
+            // TypeScript errors
+            ("npx tsc --init", "Cannot find module 'typescript'", "typescript", 40, 3),
+            ("npm install @types/node --save-dev", "Could not find a declaration file", "typescript", 45, 4),
+        ];
+
+        for (command, error, tags, success, fail) in seed_data {
+            let entry = BrainEntry {
+                id: None,
+                command: command.to_string(),
+                error_pattern: Some(error.to_string()),
+                context_tags: Some(tags.to_string()),
+                success_count: success,
+                fail_count: fail,
+                provenance: Some("seed".to_string()),
+                created_at: Some(1700000000), // Fixed timestamp for seed data
+            };
+            let _ = self.insert(entry); // Ignore errors for duplicate entries
+        }
+
+        Ok(())
+    }
 }

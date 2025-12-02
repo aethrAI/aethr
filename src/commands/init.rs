@@ -1,5 +1,6 @@
 use crate::Result;
 use crate::db::local::LocalDB;
+use crate::db::community_brain::CommunityBrain;
 use crate::utils::config::{self, AethrConfig};
 use crate::ui::{show_consent, AutoSaveChoice};
 use std::io::{self, Write};
@@ -19,6 +20,10 @@ pub fn run() -> Result<()> {
     // Initialize database silently
     let db_path = config::get_db_path();
     let _db = LocalDB::new(&db_path)?;
+    
+    // Seed Community Brain with common fixes for new users
+    let brain = CommunityBrain::new(&db_path)?;
+    brain.seed_if_empty()?;
 
     // Create token file
     let token_path = config::get_token_path();
