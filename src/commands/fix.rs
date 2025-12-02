@@ -156,15 +156,8 @@ pub fn run(error: &str) -> Result<()> {
     println!("We couldn't find a solution in:");
     println!("  • Rule engine");
     println!("  • Community Brain");
-    if ClaudeClient::from_env().is_some() {
-        println!("  • AI (Claude)");
-    }
+    println!("  • AI (Claude)");
     println!();
-    
-    if ClaudeClient::from_env().is_none() {
-        println!("\x1b[90m💡 Tip: Set ANTHROPIC_API_KEY for AI-powered suggestions\x1b[0m");
-        println!();
-    }
     
     println!("Try rephrasing or share this error with the community:");
     println!("  \x1b[36m$ aethr report \"your error\"\x1b[0m");

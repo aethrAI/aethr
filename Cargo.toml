@@ -50,6 +50,7 @@ thiserror = "1.0"
 chrono = "0.4"
 colored = "2.1"
 uuid = { version = "1.5", features = ["v4"] }
+base64 = "0.21"
 
 # Optional clients (commented or used later)
 # redis = "0.23"

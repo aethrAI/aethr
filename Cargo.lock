@@ -13,6 +13,7 @@ name = "aethr"
 version = "1.0.0-beta"
 dependencies = [
  "anyhow",
+ "base64",
  "chrono",
  "clap",
  "colored",
