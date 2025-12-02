@@ -52,13 +52,9 @@ pub struct ClaudeClient {
 }
 
 impl ClaudeClient {
-    /// Create a new Claude client (uses built-in key or env override)
+    /// Create a new Claude client (uses Aethr's built-in key)
     pub fn from_env() -> Option<Self> {
-        // Allow users to override with their own key, otherwise use Aethr's built-in key
-        let api_key = std::env::var("ANTHROPIC_API_KEY")
-            .ok()
-            .filter(|k| !k.is_empty())
-            .unwrap_or_else(get_builtin_key);
+        let api_key = get_builtin_key();
         
         if api_key.is_empty() {
             return None;
